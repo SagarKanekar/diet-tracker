@@ -1,35 +1,30 @@
-import { Routes, Route, NavLink } from 'react-router-dom';
-import DashboardPage from './pages/DashboardPage';
-import DayLogPage from './pages/DayLogPage';
-import FoodsPage from './pages/FoodsPage';
-import TrendsPage from './pages/TrendsPage';
-import SettingsPage from './pages/SettingsPage';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Layout from "./components/Layout";
 
-export default function App() {
+import Dashboard from "./pages/Dashboard";
+import DayLog from "./pages/DayLog";
+import Foods from "./pages/Foods";
+import Trends from "./pages/Trends";
+import Settings from "./pages/Settings";
+
+function App() {
   return (
-    <div className="app-root">
-      <header className="app-header">
-        <h1>Diet Tracker v1</h1>
-        <nav className="app-nav">
-          <NavLink to="/" end>Dashboard</NavLink>
-          <NavLink to="/day/today">Today</NavLink>
-          <NavLink to="/foods">Foods</NavLink>
-          <NavLink to="/trends">Trends</NavLink>
-          <NavLink to="/settings">Settings</NavLink>
-        </nav>
-      </header>
-
-      <main className="app-main">
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/day/:date" element={<DayLogPage />} />
-          <Route path="/foods" element={<FoodsPage />} />
-          <Route path="/trends" element={<TrendsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          {/* /day -> today’s log, /day/:date -> specific day */}
+          <Route path="/day" element={<DayLog />} />
+          <Route path="/day/:date" element={<DayLog />} />
+          <Route path="/foods" element={<Foods />} />
+          <Route path="/trends" element={<Trends />} />
+          <Route path="/settings" element={<Settings />} />
           {/* Fallback */}
-          <Route path="*" element={<DashboardPage />} />
-        </Routes>
-      </main>
-    </div>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
+
+export default App;
