@@ -2,9 +2,14 @@
 import React from "react";
 import { useAppState } from "../context/AppStateContext";
 
+// MODIFICATION APPLIED HERE:
+// Using totalKcal with fallback to kcalPerUnitSnapshot
 function calcDayIntake(day) {
   if (!day || !day.meals) return 0;
-  return day.meals.reduce((sum, m) => sum + (m.totalKcal || 0), 0);
+  return day.meals.reduce(
+    (sum, m) => sum + (m.totalKcal ?? m.kcalPerUnitSnapshot ?? 0), 
+    0
+  );
 }
 
 export default function Dashboard() {
@@ -42,7 +47,8 @@ export default function Dashboard() {
   let totalTargetAllTime = 0;
 
   for (const day of effectiveDays) {
-    const intake = calcDayIntake(day);
+    // calcDayIntake now uses the fallback logic
+    const intake = calcDayIntake(day); 
     const workout = day.workoutKcal || 0;
 
     totalIntakeAllTime += intake;
@@ -59,7 +65,8 @@ export default function Dashboard() {
   );
   let currentStreak = 0;
   for (let i = sortedDays.length - 1; i >= 0; i--) {
-    const day = sortedDays[i];
+    // calcDayIntake now uses the fallback logic
+    const day = sortedDays[i]; 
     const intake = calcDayIntake(day);
     const workout = day.workoutKcal || 0;
     const dayDeficit = (dailyTarget + workout) - intake;

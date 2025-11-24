@@ -36,7 +36,8 @@ function AddMealForm({ mealType, date }) {
 
     const kcalPerUnitNum = Number(kcalPerUnit);
     const quantityNum = Number(quantity);
-    const totalKcal = kcalPerUnitNum * quantityNum;
+    
+    const totalKcal = Math.round(kcalPerUnitNum * quantityNum);
 
     // 1) See if a foodItem already exists with same name + unit
     const existing = state.foodItems.find(
@@ -131,7 +132,8 @@ function AddMealForm({ mealType, date }) {
         />
         <input
           type="number"
-          min="0"
+          min="0.1"
+          step="0.1"
           placeholder="Qty"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
@@ -172,8 +174,10 @@ export default function DayLog() {
     return grouped;
   }, [dayLog.meals]);
 
+  // MODIFICATION APPLIED HERE:
+  // Using totalKcal with fallback to kcalPerUnitSnapshot
   const totalIntakeKcal = (dayLog.meals || []).reduce(
-    (sum, m) => sum + (m.totalKcal || 0),
+    (sum, m) => sum + (m.totalKcal ?? m.kcalPerUnitSnapshot ?? 0),
     0
   );
 
