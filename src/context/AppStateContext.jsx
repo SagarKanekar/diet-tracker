@@ -1,15 +1,16 @@
 // src/context/AppStateContext.jsx
 import React, { createContext, useContext, useEffect, useReducer } from "react";
 
+// ----- PROFILE DEFAULT -----
 const DEFAULT_PROFILE = {
   name: "",
   heightCm: "",
   weightKg: "",
-  sex: "male",              // or "female"/"other"
-  dailyKcalTarget: 2200,    // can tweak later
+  sex: "male", // or "female"/"other"
+  dailyKcalTarget: 2200, // can tweak later
   defaultActivityPreset: "sedentary", // "sedentary" | "college" | "custom"
   defaultActivityFactor: 1.2,
-  proteinTarget: "",        // optional, can stay empty
+  proteinTarget: "", // optional, can stay empty
 };
 
 const LOCAL_STORAGE_KEY = "diet-tracker-app-state-v1";
@@ -18,14 +19,11 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 
 // --------- INITIAL STATE ---------
 const initialState = {
+  // 🔹 Use our new profile shape here
   profile: {
-    name: "",
-    heightCm: null,
-    startingWeightKg: null,
-    currentWeightKg: null,
-    dailyKcalTarget: 2300,
-    defaultActivityPreset: "sedentary", // future use
+    ...DEFAULT_PROFILE,
   },
+
   // Your personal food DB
   foodItems: [
     // example shape:
@@ -37,6 +35,7 @@ const initialState = {
     //   kcalPerUnit: 80,
     // }
   ],
+
   // Logs keyed by date: "YYYY-MM-DD" -> { ... }
   dayLogs: {
     // "2025-11-24": {
@@ -51,7 +50,7 @@ const initialState = {
     //       id: "meal-1",
     //       mealType: "lunch", // "lunch" | "dinner" | "extra"
     //       foodItemId: "food-1",
-    //       foodNameSnapshot: "Chapati",    // frozen label at time of logging
+    //       foodNameSnapshot: "Chapati", // frozen label at time of logging
     //       unitLabelSnapshot: "piece",
     //       quantity: 2,
     //       kcalPerUnitSnapshot: 80,
@@ -60,22 +59,29 @@ const initialState = {
     //   ],
     // },
   },
+
   selectedDate: todayIso(),
 };
 
 // --------- HELPERS ---------
-
 function loadFromStorage() {
   try {
     const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) return initialState;
+
     const parsed = JSON.parse(raw);
 
     // Shallow merge so we can evolve the state shape safely
     return {
       ...initialState,
       ...parsed,
-      profile: { ...initialState.profile, ...(parsed.profile || {}) },
+
+      // 🔹 Merge profile on top of DEFAULT_PROFILE so old data still works
+      profile: {
+        ...DEFAULT_PROFILE,
+        ...(parsed.profile || {}),
+      },
+
       dayLogs: parsed.dayLogs || {},
       foodItems: parsed.foodItems || [],
       selectedDate: parsed.selectedDate || todayIso(),
@@ -110,7 +116,6 @@ function ensureDayLog(state, date) {
 }
 
 // --------- REDUCER ---------
-
 function appReducer(state, action) {
   switch (action.type) {
     case "SET_SELECTED_DATE": {
@@ -149,6 +154,7 @@ function appReducer(state, action) {
 
     case "ADD_MEAL_ENTRY": {
       const {
+        id,
         date,
         mealType,
         foodItemId,
@@ -162,7 +168,7 @@ function appReducer(state, action) {
       const dayLog = ensureDayLog(state, date);
 
       const newMeal = {
-        id: action.payload.id,
+        id,
         mealType,
         foodItemId,
         foodNameSnapshot,
@@ -223,13 +229,23 @@ function appReducer(state, action) {
       };
     }
 
+    // 🔹 New: update profile from /settings
+    case "UPDATE_PROFILE": {
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          ...action.payload,
+        },
+      };
+    }
+
     default:
       return state;
   }
 }
 
 // --------- CONTEXT SETUP ---------
-
 const AppStateContext = createContext(null);
 
 export function AppStateProvider({ children }) {
