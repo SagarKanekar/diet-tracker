@@ -64,6 +64,8 @@ function AddMealForm({ mealType, date }) {
             category,
             unitLabel: existing.unitLabel,
             kcalPerUnit: kcalPerUnitNum,
+            // Preserve isFavourite status if updating meta fields
+            isFavourite: existing.isFavourite,
           },
         });
       }
@@ -155,6 +157,39 @@ export default function DayLog() {
 
   const selectedDate = state.selectedDate;
   
+  // 3.1 Get favourite foods from state
+  const allFoods = state.foodItems || [];
+  const favouriteFoods = allFoods.filter((f) => f.isFavourite);
+
+  // 3.2 Extract a helper for “actually add a meal”
+  const addMealEntry = (mealType, food, qty) => {
+    const quantityNumber = Number(qty);
+    if (!food || !quantityNumber || quantityNumber <= 0) return;
+
+    const totalKcal = Math.round(quantityNumber * food.kcalPerUnit);
+
+    dispatch({
+      type: "ADD_MEAL_ENTRY",
+      payload: {
+        id: generateId("meal"),
+        date: selectedDate,
+        mealType,
+        foodItemId: food.id,
+        foodNameSnapshot: food.name,
+        unitLabelSnapshot: food.unitLabel,
+        kcalPerUnitSnapshot: food.kcalPerUnit,
+        quantity: quantityNumber,
+        totalKcal,
+      },
+    });
+  };
+
+  // 3.3 Add Quick Add handler
+  const handleQuickAddFavourite = (mealType, food) => {
+    // v1: always quantity 1
+    addMealEntry(mealType, food, 1);
+  };
+
   // Get the day log, falling back to an empty object
   const dayLog = useMemo(() => {
     return (
@@ -250,8 +285,6 @@ export default function DayLog() {
               style={{ width: "80px" }}
             />
           </label>
-
-          {/* Hydration (ml) input removed from here */}
           
           <label>
             Workout kcal (manual):{" "}
@@ -286,14 +319,31 @@ export default function DayLog() {
             />
           </label>
         </div>
-
-        {/* Notes textarea removed from here */}
       </section>
 
       {/* Meals sections */}
       {MEAL_TYPES.map((meal) => (
         <section key={meal.id} style={{ marginBottom: "1.5rem" }}>
           <h2>{meal.label}</h2>
+
+          {/* 3.4 Render favourite buttons under each meal section */}
+          {favouriteFoods.length > 0 && (
+            <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", marginBottom: "0.75rem" }}>
+              <div>Quick add favourites:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginTop: "0.25rem" }}>
+                {favouriteFoods.map((food) => (
+                  <button
+                    key={food.id}
+                    type="button"
+                    onClick={() => handleQuickAddFavourite(meal.id, food)} 
+                    style={{ padding: "0.25rem 0.5rem", cursor: "pointer" }}
+                  >
+                    {food.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {(mealsByType[meal.id] || []).length === 0 ? (
             <p style={{ fontSize: "0.9rem", opacity: 0.7 }}>

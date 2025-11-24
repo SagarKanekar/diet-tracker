@@ -7,14 +7,17 @@ export default function Foods() {
   
   // 1. Add local UI state for filtering and searching
   const [editingId, setEditingId] = useState(null);
+  
+  // UPDATED: Add isFavourite to the editForm state
   const [editForm, setEditForm] = useState({
     name: "",
     category: "",
     unitLabel: "",
     kcalPerUnit: "",
+    isFavourite: false, // NEW
   });
   
-  const [categoryFilter, setCategoryFilter] = useState("all"); // "all" | "home" | "street" | "cheat" | "drinks"
+  const [categoryFilter, setCategoryFilter] = useState("all"); 
   const [searchQuery, setSearchQuery] = useState("");
 
 
@@ -42,26 +45,37 @@ export default function Foods() {
     a.name.localeCompare(b.name)
   );
 
+  // 2.2 UPDATED: Include isFavourite when starting edit
   const startEdit = (food) => {
     setEditingId(food.id);
     setEditForm({
       name: food.name,
-      category: food.category,
-      unitLabel: food.unitLabel,
-      kcalPerUnit: food.kcalPerUnit,
+      category: food.category || "home",
+      unitLabel: food.unitLabel || "serving",
+      kcalPerUnit: String(food.kcalPerUnit ?? ""),
+      isFavourite: !!food.isFavourite, // NEW: prefill isFavourite
     });
   };
 
   const saveEdit = () => {
+    // 2.3 UPDATED: Include isFavourite in the UPSERT dispatch
     dispatch({
       type: "UPSERT_FOOD_ITEM",
       payload: {
         id: editingId,
         ...editForm,
         kcalPerUnit: Number(editForm.kcalPerUnit),
+        isFavourite: editForm.isFavourite, // NEW
       },
     });
     setEditingId(null);
+    // Resetting form is not strictly required here as it's used for editing only.
+    // If there was a separate 'Add new' section, a reset would be needed there.
+  };
+  
+  // Helper to update one field in the edit form state
+  const updateEditForm = (key, value) => {
+    setEditForm((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -129,6 +143,7 @@ export default function Foods() {
               <th>Category</th>
               <th>Unit</th>
               <th>kcal/unit</th>
+              <th>Favourite</th> {/* New header for Favourite status */}
               <th></th>
             </tr>
           </thead>
@@ -139,12 +154,14 @@ export default function Foods() {
                   {editingId === food.id ? (
                     <input
                       value={editForm.name}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, name: e.target.value })
-                      }
+                      onChange={(e) => updateEditForm("name", e.target.value)}
                     />
                   ) : (
-                    food.name
+                    <>
+                      {/* 2.5 Visually mark favourites in the list */}
+                      {food.isFavourite && <span style={{ marginRight: "0.25rem" }}>⭐</span>}
+                      {food.name}
+                    </>
                   )}
                 </td>
 
@@ -152,9 +169,7 @@ export default function Foods() {
                   {editingId === food.id ? (
                     <input
                       value={editForm.category}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, category: e.target.value })
-                      }
+                      onChange={(e) => updateEditForm("category", e.target.value)}
                     />
                   ) : (
                     food.category
@@ -165,9 +180,7 @@ export default function Foods() {
                   {editingId === food.id ? (
                     <input
                       value={editForm.unitLabel}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, unitLabel: e.target.value })
-                      }
+                      onChange={(e) => updateEditForm("unitLabel", e.target.value)}
                     />
                   ) : (
                     food.unitLabel
@@ -179,15 +192,26 @@ export default function Foods() {
                     <input
                       type="number"
                       value={editForm.kcalPerUnit}
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          kcalPerUnit: e.target.value,
-                        })
-                      }
+                      onChange={(e) => updateEditForm("kcalPerUnit", e.target.value)}
                     />
                   ) : (
                     food.kcalPerUnit
+                  )}
+                </td>
+                
+                {/* Favourite Status Column */}
+                <td style={{ textAlign: "center" }}>
+                  {editingId === food.id ? (
+                    <label>
+                      {/* 2.4 Add a “Favourite” checkbox in the form */}
+                      <input
+                        type="checkbox"
+                        checked={editForm.isFavourite}
+                        onChange={(e) => updateEditForm("isFavourite", e.target.checked)}
+                      />
+                    </label>
+                  ) : (
+                    food.isFavourite ? "Yes" : "No"
                   )}
                 </td>
 

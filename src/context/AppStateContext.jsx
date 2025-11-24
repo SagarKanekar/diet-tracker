@@ -37,6 +37,7 @@ const initialState = {
     //   category: "home",
     //   unitLabel: "piece",
     //   kcalPerUnit: 80,
+    //   isFavourite: false, // NEW field example
     // }
   ],
 
@@ -120,8 +121,16 @@ function appReducer(state, action) {
       };
     }
 
+    // UPDATED: Accept and save isFavourite
     case "UPSERT_FOOD_ITEM": {
-      const { id, name, category, unitLabel, kcalPerUnit } = action.payload;
+      const {
+        id,
+        name,
+        category,
+        unitLabel,
+        kcalPerUnit,
+        isFavourite = false,   // NEW: Default to false if missing
+      } = action.payload;
 
       // If id exists -> update; else insert
       const existingIndex = state.foodItems.findIndex((f) => f.id === id);
@@ -134,6 +143,7 @@ function appReducer(state, action) {
           category,
           unitLabel,
           kcalPerUnit,
+          isFavourite,          // NEW: Save the new value
         };
         return { ...state, foodItems: updated };
       }
@@ -142,7 +152,14 @@ function appReducer(state, action) {
         ...state,
         foodItems: [
           ...state.foodItems,
-          { id, name, category, unitLabel, kcalPerUnit },
+          {
+            id,
+            name,
+            category,
+            unitLabel,
+            kcalPerUnit,
+            isFavourite,        // NEW: Save the new value
+          },
         ],
       };
     }
