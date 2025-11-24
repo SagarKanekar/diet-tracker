@@ -81,101 +81,151 @@ export default function Trends() {
       },
     });
 
-    // You can keep the value or clear it; I prefer keeping so you see what you last entered.
-    // setWeightInput("");
+    // Simple feedback on save
+    alert(`Weight ${v} kg saved for ${selectedDate}`);
+    // setWeightInput(""); // Optionally clear input
   };
 
-  const hasCalorieData = calorieSeries.length > 0;
-  const hasWeightData = weightSeries.length > 0;
+  const hasCalorieData = calorieSeries.length > 1; // Need at least 2 points for a trend line
+  const hasWeightData = weightSeries.length > 1;
 
   return (
-    <div>
-      <h1>Trends</h1>
-
-      {/* Weight logging controls */}
-      <section>
-        <h2>Log Weight</h2>
-        <div style={{ marginBottom: "0.5rem" }}>
-          <label>
-            Date:&nbsp;
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={handleSelectedDateChange}
-            />
-          </label>
-        </div>
-        <div style={{ marginBottom: "0.5rem" }}>
-          <label>
-            Weight (kg):&nbsp;
-            <input
-              type="number"
-              step="0.1"
-              value={weightInput}
-              onChange={(e) => setWeightInput(e.target.value)}
-            />
-          </label>
-        </div>
-        <button onClick={handleSaveWeight}>Save weight for selected date</button>
-        <p style={{ fontSize: "0.9rem", marginTop: "0.5rem" }}>
-          Tip: pick any date (past or today) and log your weight so the graph
-          lines up with your calorie data.
+    <>
+      {/* 1. Page Header */}
+      <div className="page-header">
+        <h1 className="page-title">Health Trends</h1>
+        <p className="page-subtitle">
+          Visualize your progress over time.
         </p>
-      </section>
+      </div>
+      
+      <hr />
 
-      {/* Calories vs target chart */}
-      <section style={{ marginTop: "2rem" }}>
-        <h2>Calories vs Target</h2>
+      {/* 2. Weight logging card */}
+      <section className="section-spacer">
+        <div className="card form-card">
+          <div className="card-header">
+            <h2 className="card-title">Log Weight</h2>
+          </div>
+          
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="log-date">Date</label>
+              <input
+                id="log-date"
+                type="date"
+                value={selectedDate}
+                onChange={handleSelectedDateChange}
+                className="input-full"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="log-weight">Weight (kg)</label>
+              <input
+                id="log-weight"
+                type="number"
+                step="0.1"
+                min="0"
+                value={weightInput}
+                onChange={(e) => setWeightInput(e.target.value)}
+                className="input-full"
+              />
+            </div>
+          </div>
+          
+          <div className="btn-row justify-end pt-1">
+            <button 
+                onClick={handleSaveWeight} 
+                className="btn-primary"
+                disabled={!selectedDate || !weightInput}
+            >
+                Save Weight
+            </button>
+          </div>
+          
+          <p className="muted mt-1">
+            Tip: Select the date you want to log and enter your weight.
+          </p>
+        </div>
+      </section>
+      
+      <hr />
+
+      {/* 3. Calories vs target chart */}
+      <section className="section-spacer">
+        <h2 className="section-title">Daily Calorie Intake vs Target</h2>
         {!hasCalorieData ? (
-          <p>No data yet. Log a few days of meals and come back!</p>
+          <p className="muted">
+            No data yet. Log at least two days of meals to see the trend.
+          </p>
         ) : (
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer>
+          <div style={{ width: "100%", height: 350 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={calorieSeries}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+                <XAxis dataKey="date" stroke="#666" />
+                <YAxis unit=" kcal" stroke="#666" />
+                <Tooltip 
+                  formatter={(value, name) => [`${value} kcal`, name]}
+                />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="intake"
                   name="Intake"
+                  stroke="#2E86C1"
                   dot={false}
+                  strokeWidth={2}
                 />
                 <Line
                   type="monotone"
                   dataKey="target"
                   name="Target"
+                  stroke="#E74C3C"
                   strokeDasharray="5 5"
                   dot={false}
+                  strokeWidth={2}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
       </section>
+      
+      <hr />
 
-      {/* Weight chart */}
-      <section style={{ marginTop: "2rem" }}>
-        <h2>Weight Trend</h2>
+      {/* 4. Weight chart */}
+      <section className="section-spacer">
+        <h2 className="section-title">Weight Trend (kg)</h2>
         {!hasWeightData ? (
-          <p>No weight data yet. Log your weight above to see the graph.</p>
+          <p className="muted">
+            No weight data yet. Log your weight above for at least two different dates to see the trend.
+          </p>
         ) : (
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer>
+          <div style={{ width: "100%", height: 350 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={weightSeries}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+                <XAxis dataKey="date" stroke="#666" />
+                <YAxis unit=" kg" domain={['auto', 'auto']} stroke="#666" />
+                <Tooltip 
+                   formatter={(value, name) => [`${value} kg`, name]}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="weight" name="Weight (kg)" dot />
+                <Line 
+                    type="monotone" 
+                    dataKey="weight" 
+                    name="Weight" 
+                    stroke="#27AE60" 
+                    dot={{ r: 4 }} 
+                    strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
       </section>
-    </div>
+    </>
   );
 }

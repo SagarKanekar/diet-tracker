@@ -63,6 +63,10 @@ export default function Foods() {
     });
   };
 
+  const cancelEdit = () => {
+    setEditingId(null);
+  }
+
   const updateEditForm = (key, value) => {
     setEditForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -113,284 +117,297 @@ export default function Foods() {
       isFavourite: false,
     });
   };
+  
+  const FOOD_CATEGORIES = [
+    { key: "all", label: "All" },
+    { key: "home", label: "Home" },
+    { key: "street", label: "Street" },
+    { key: "cheat", label: "Cheat" },
+    { key: "drinks", label: "Drinks" },
+  ];
 
   return (
-    <div style={{ padding: "1rem" }}>
-      <h1>Foods Database</h1>
-      <p>
-        Total items: {allFoods.length} ({filteredFoods.length} shown)
-      </p>
+    <>
+      {/* 1. Page Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Foods Database</h1>
+          <p className="page-subtitle">
+            Define units and calorie counts for all tracked food items.
+          </p>
+        </div>
+        <div className="muted">
+          Total items: **{allFoods.length}** ({filteredFoods.length} shown)
+        </div>
+      </div>
 
-      {/* --- Add new food form --- */}
-      <section
-        style={{
-          marginBottom: "1rem",
-          padding: "0.75rem",
-          border: "1px solid #ddd",
-          borderRadius: 4,
-        }}
-      >
-        <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
-          Add new food
-        </h2>
-        <form
-          onSubmit={handleAddNew}
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0.5rem",
-            alignItems: "center",
-          }}
-        >
-          <input
-            type="text"
-            placeholder="Name (e.g. Chapati)"
-            value={newFood.name}
-            onChange={(e) =>
-              setNewFood((prev) => ({ ...prev, name: e.target.value }))
-            }
-            style={{ minWidth: 160 }}
-          />
-          <select
-            value={newFood.category}
-            onChange={(e) =>
-              setNewFood((prev) => ({ ...prev, category: e.target.value }))
-            }
-          >
-            <option value="home">Home</option>
-            <option value="street">Street</option>
-            <option value="cheat">Cheat</option>
-            <option value="drinks">Drinks</option>
-          </select>
-          <input
-            type="text"
-            placeholder="Unit (e.g. piece, serving)"
-            value={newFood.unitLabel}
-            onChange={(e) =>
-              setNewFood((prev) => ({ ...prev, unitLabel: e.target.value }))
-            }
-            style={{ width: 120 }}
-          />
-          <input
-            type="number"
-            step="1"
-            min="0"
-            placeholder="kcal / unit"
-            value={newFood.kcalPerUnit}
-            onChange={(e) =>
-              setNewFood((prev) => ({
-                ...prev,
-                kcalPerUnit: e.target.value,
-              }))
-            }
-            style={{ width: 110 }}
-          />
-          <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <input
-              type="checkbox"
-              checked={newFood.isFavourite}
-              onChange={(e) =>
-                setNewFood((prev) => ({
-                  ...prev,
-                  isFavourite: e.target.checked,
-                }))
-              }
-            />
-            Favourite
-          </label>
-          <button type="submit">Add</button>
-        </form>
+      <hr />
+
+      {/* 2. Add New Food Card */}
+      <section className="section-spacer">
+        <div className="card form-card">
+          <div className="card-header">
+            <h2 className="card-title">Add New Food Item</h2>
+          </div>
+          <form onSubmit={handleAddNew}>
+            <div className="form-row-responsive">
+              <div className="form-group flex-2">
+                <label htmlFor="new-name">Name</label>
+                <input
+                  id="new-name"
+                  type="text"
+                  placeholder="e.g. Chapati, Protein Shake"
+                  value={newFood.name}
+                  onChange={(e) =>
+                    setNewFood((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  className="input-full"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="new-category">Category</label>
+                <select
+                  id="new-category"
+                  value={newFood.category}
+                  onChange={(e) =>
+                    setNewFood((prev) => ({ ...prev, category: e.target.value }))
+                  }
+                  className="input-full"
+                >
+                  {FOOD_CATEGORIES.filter(c => c.key !== 'all').map(c => (
+                    <option key={c.key} value={c.key}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="new-unit">Unit</label>
+                <input
+                  id="new-unit"
+                  type="text"
+                  placeholder="e.g. piece, serving, ml"
+                  value={newFood.unitLabel}
+                  onChange={(e) =>
+                    setNewFood((prev) => ({ ...prev, unitLabel: e.target.value }))
+                  }
+                  className="input-full"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="new-kcal">kcal / unit</label>
+                <input
+                  id="new-kcal"
+                  type="number"
+                  step="1"
+                  min="0"
+                  placeholder="kcal"
+                  value={newFood.kcalPerUnit}
+                  onChange={(e) =>
+                    setNewFood((prev) => ({
+                      ...prev,
+                      kcalPerUnit: e.target.value,
+                    }))
+                  }
+                  className="input-full text-right"
+                  required
+                />
+              </div>
+
+              <div className="form-group form-group-checkbox">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={newFood.isFavourite}
+                    onChange={(e) =>
+                      setNewFood((prev) => ({
+                        ...prev,
+                        isFavourite: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>Favourite</span>
+                </label>
+              </div>
+            </div>
+            <div className="btn-row justify-end">
+                <button type="submit" className="btn-primary">
+                    Add Food
+                </button>
+            </div>
+          </form>
+        </div>
       </section>
 
-      {/* --- Search + filter controls --- */}
-      <div style={{ marginBottom: "0.75rem" }}>
-        <input
-          type="text"
-          placeholder="Search by name…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ width: "250px", marginRight: "0.5rem" }}
-        />
-        {[
-          { key: "all", label: "All" },
-          { key: "home", label: "Home" },
-          { key: "street", label: "Street" },
-          { key: "cheat", label: "Cheat" },
-          { key: "drinks", label: "Drinks" },
-        ].map((btn) => (
-          <button
-            key={btn.key}
-            type="button"
-            onClick={() => setCategoryFilter(btn.key)}
-            style={{
-              padding: "0.25rem 0.75rem",
-              border:
-                categoryFilter === btn.key
-                  ? "2px solid black"
-                  : "1px solid #ccc",
-              fontWeight: categoryFilter === btn.key ? "bold" : "normal",
-              cursor: "pointer",
-              marginRight: "0.25rem",
-            }}
-          >
-            {btn.label}
-          </button>
-        ))}
-      </div>
+      <hr />
+
+      {/* 3. Search + filter controls */}
+      <section className="section-spacer">
+        <h2 className="section-title">Food List</h2>
+        <div className="controls-row">
+          <input
+            type="text"
+            placeholder="Search by name…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-search"
+          />
+          <div className="btn-group">
+            {FOOD_CATEGORIES.map((btn) => (
+              <button
+                key={btn.key}
+                type="button"
+                onClick={() => setCategoryFilter(btn.key)}
+                className={`btn-secondary ${
+                  categoryFilter === btn.key ? "btn-active" : ""
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
       {/* --- Empty state / table --- */}
       {filteredFoods.length === 0 && (
-        <p>
+        <p className="muted">
           No food items match your criteria. Try adjusting the search or filter.
         </p>
       )}
 
       {filteredFoods.length > 0 && (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: "0.5rem",
-          }}
-        >
+        <table className="data-table food-table">
           <thead>
             <tr>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
-                Name
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
-                Category
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
-                Unit
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
-                kcal / unit
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
-                Favourite
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
-                Actions
-              </th>
+              <th className="text-left">Name</th>
+              <th className="text-left">Category</th>
+              <th className="text-left">Unit</th>
+              <th className="text-right">kcal / unit</th>
+              <th className="text-center">Favourite</th>
+              <th className="text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredFoods.map((food) => (
-              <tr key={food.id}>
-                {/* Name */}
-                <td style={{ padding: "4px 0" }}>
-                  {editingId === food.id ? (
-                    <input
-                      value={editForm.name}
-                      onChange={(e) =>
-                        updateEditForm("name", e.target.value)
-                      }
-                    />
-                  ) : (
-                    <>
-                      {food.isFavourite && <span>⭐ </span>}
-                      {food.name}
-                    </>
-                  )}
-                </td>
+            {filteredFoods.map((food) => {
+                const isEditing = editingId === food.id;
+                return (
+                <tr key={food.id} className={isEditing ? 'editing-row' : ''}>
+                    {/* Name */}
+                    <td>
+                        {isEditing ? (
+                            <input
+                                value={editForm.name}
+                                onChange={(e) => updateEditForm("name", e.target.value)}
+                                className="input-full"
+                            />
+                        ) : (
+                            <>
+                                {food.isFavourite && <span className="favorite-star">⭐ </span>}
+                                {food.name}
+                            </>
+                        )}
+                    </td>
 
-                {/* Category */}
-                <td style={{ padding: "4px 0" }}>
-                  {editingId === food.id ? (
-                    <select
-                      value={editForm.category}
-                      onChange={(e) =>
-                        updateEditForm("category", e.target.value)
-                      }
-                    >
-                      <option value="home">Home</option>
-                      <option value="street">Street</option>
-                      <option value="cheat">Cheat</option>
-                      <option value="drinks">Drinks</option>
-                    </select>
-                  ) : (
-                    food.category || "home"
-                  )}
-                </td>
+                    {/* Category */}
+                    <td>
+                        {isEditing ? (
+                            <select
+                                value={editForm.category}
+                                onChange={(e) => updateEditForm("category", e.target.value)}
+                                className="input-full"
+                            >
+                                {FOOD_CATEGORIES.filter(c => c.key !== 'all').map(c => (
+                                    <option key={c.key} value={c.key}>{c.label}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            food.category || "home"
+                        )}
+                    </td>
 
-                {/* Unit label */}
-                <td style={{ padding: "4px 0" }}>
-                  {editingId === food.id ? (
-                    <input
-                      value={editForm.unitLabel}
-                      onChange={(e) =>
-                        updateEditForm("unitLabel", e.target.value)
-                      }
-                    />
-                  ) : (
-                    food.unitLabel
-                  )}
-                </td>
+                    {/* Unit label */}
+                    <td>
+                        {isEditing ? (
+                            <input
+                                value={editForm.unitLabel}
+                                onChange={(e) => updateEditForm("unitLabel", e.target.value)}
+                                className="input-full"
+                            />
+                        ) : (
+                            food.unitLabel
+                        )}
+                    </td>
 
-                {/* kcal per unit */}
-                <td style={{ padding: "4px 0" }}>
-                  {editingId === food.id ? (
-                    <input
-                      type="number"
-                      value={editForm.kcalPerUnit}
-                      onChange={(e) =>
-                        updateEditForm("kcalPerUnit", e.target.value)
-                      }
-                    />
-                  ) : (
-                    food.kcalPerUnit
-                  )}
-                </td>
+                    {/* kcal per unit */}
+                    <td className="text-right">
+                        {isEditing ? (
+                            <input
+                                type="number"
+                                min="0"
+                                value={editForm.kcalPerUnit}
+                                onChange={(e) => updateEditForm("kcalPerUnit", e.target.value)}
+                                className="input-small text-right"
+                            />
+                        ) : (
+                            food.kcalPerUnit
+                        )}
+                    </td>
 
-                {/* Favourite flag */}
-                <td style={{ padding: "4px 0" }}>
-                  {editingId === food.id ? (
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={editForm.isFavourite}
-                        onChange={(e) =>
-                          updateEditForm("isFavourite", e.target.checked)
-                        }
-                      />{" "}
-                      Favourite
-                    </label>
-                  ) : food.isFavourite ? (
-                    "Yes"
-                  ) : (
-                    "No"
-                  )}
-                </td>
+                    {/* Favourite flag */}
+                    <td className="text-center">
+                        {isEditing ? (
+                            <label className="checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    checked={editForm.isFavourite}
+                                    onChange={(e) =>
+                                        updateEditForm("isFavourite", e.target.checked)
+                                    }
+                                />
+                            </label>
+                        ) : food.isFavourite ? (
+                            "Yes"
+                        ) : (
+                            "No"
+                        )}
+                    </td>
 
-                {/* Actions */}
-                <td style={{ padding: "4px 0" }}>
-                  {editingId === food.id ? (
-                    <>
-                      <button type="button" onClick={saveEdit}>
-                        Save
-                      </button>{" "}
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => startEdit(food)}
-                    >
-                      Edit
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+                    {/* Actions */}
+                    <td className="btn-row">
+                        {isEditing ? (
+                            <>
+                                <button type="button" onClick={saveEdit} className="btn-primary btn-small">
+                                    Save
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={cancelEdit}
+                                    className="btn-secondary btn-small"
+                                >
+                                    Cancel
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => startEdit(food)}
+                                className="btn-secondary btn-small"
+                            >
+                                Edit
+                            </button>
+                        )}
+                    </td>
+                </tr>
+            );
+            })}
           </tbody>
-        </table>
+        </table >
       )}
-    </div>
+    </>
   );
 }

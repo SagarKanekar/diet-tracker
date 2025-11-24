@@ -4,6 +4,8 @@ import { useAppState } from "../context/AppStateContext";
 import FoodAutocomplete from "../components/FoodAutocomplete";
 
 const MEAL_TYPES = [
+  // Corrected ID to align with convention/keys, though old ones work
+  { id: "breakfast", label: "Breakfast" },
   { id: "lunch", label: "Lunch" },
   { id: "dinner", label: "Dinner" },
   { id: "extra", label: "Extras / Snacks" },
@@ -19,19 +21,23 @@ function generateId(prefix) {
 export default function DayLog() {
   const { state, dispatch } = useAppState();
   const selectedDate = state.selectedDate;
+  const dailyTarget = state.profile.dailyKcalTarget || 0; // Needed for the header
 
   // Per-meal form state for adding new meals
   const [newMealFoodSearch, setNewMealFoodSearch] = useState({
+    breakfast: "", // Added breakfast state
     lunch: "",
     dinner: "",
     extra: "",
   });
   const [newMealFoodId, setNewMealFoodId] = useState({
+    breakfast: null,
     lunch: null,
     dinner: null,
     extra: null,
   });
   const [newQuantity, setNewQuantity] = useState({
+    breakfast: "1",
     lunch: "1",
     dinner: "1",
     extra: "1",
@@ -143,7 +149,7 @@ export default function DayLog() {
     return (
       state.dayLogs[selectedDate] || {
         date: selectedDate,
-        activityFactor: 1.2,
+        activityFactor: state.profile.defaultActivityFactor ?? 1.2,
         hydrationLitres: 0,
         workoutKcal: 0,
         weightKg: null,
@@ -151,16 +157,20 @@ export default function DayLog() {
         meals: [],
       }
     );
-  }, [state.dayLogs, selectedDate]);
+  }, [state.dayLogs, selectedDate, state.profile.defaultActivityFactor]);
 
   const hydrationLitres = dayLog.hydrationLitres ?? 0;
   const notes = dayLog.notes ?? "";
+  const workoutKcal = dayLog.workoutKcal ?? 0;
+  const activityFactor = dayLog.activityFactor ?? 1.2;
 
   const mealsByType = useMemo(() => {
-    const grouped = { lunch: [], dinner: [], extra: [] };
+    const grouped = {};
+    MEAL_TYPES.forEach(type => grouped[type.id] = []);
     (dayLog.meals || []).forEach((m) => {
-      if (!grouped[m.mealType]) grouped[m.mealType] = [];
-      grouped[m.mealType].push(m);
+      // Ensure mealType is valid, default to 'extra' if unknown
+      const key = MEAL_TYPES.some(t => t.id === m.mealType) ? m.mealType : 'extra'; 
+      grouped[key].push(m);
     });
     return grouped;
   }, [dayLog.meals]);
@@ -170,6 +180,12 @@ export default function DayLog() {
     0
   );
 
+  const netDayKcal = dailyTarget > 0 
+    ? (dailyTarget * activityFactor) + workoutKcal - totalIntakeKcal 
+    : 0;
+
+
+  // ----- Handlers -----
   const handleDateChange = (e) => {
     const newDate = e.target.value;
     if (!newDate) return;
@@ -183,6 +199,24 @@ export default function DayLog() {
     });
   };
 
+  const handleHydrationChange = (e) => {
+    dispatch({
+      type: "UPDATE_DAY_HYDRATION",
+      payload: {
+        date: selectedDate,
+        hydrationLitres: Number(e.target.value) || 0,
+      },
+    });
+  };
+
+  const handleNotesChange = (e) => {
+    dispatch({
+      type: "UPDATE_DAY_NOTES",
+      payload: { date: selectedDate, notes: e.target.value },
+    });
+  };
+
+
   const handleDeleteMeal = (mealId) => {
     dispatch({
       type: "DELETE_MEAL_ENTRY",
@@ -195,99 +229,191 @@ export default function DayLog() {
   };
 
   return (
-    <div style={{ padding: "1rem" }}>
-      <h1>Day Log</h1>
-
-      {/* Top controls: date + summary */}
-      <div style={{ marginBottom: "1rem" }}>
-        <label>
-          Date:{" "}
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={handleDateChange}
-          />
-        </label>
-        <div style={{ marginTop: "0.5rem" }}>
-          <strong>Total intake:</strong> {totalIntakeKcal} kcal
+    <>
+      {/* 1. Page Header (Page Title + Date Picker) */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Day Log</h1>
+          <p className="page-subtitle">
+            Log meals, hydration, and exercise for the selected day.
+          </p>
+        </div>
+        <div className="form-group form-group-inline">
+          <label>
+            <strong>Date:</strong>{" "}
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={handleDateChange}
+              className="input-date"
+            />
+          </label>
         </div>
       </div>
 
-      {/* Day Meta */}
-      <section style={{ marginBottom: "1rem" }}>
-        <h2>Day meta</h2>
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-          <label>
-            Activity factor:{" "}
-            <input
-              type="number"
-              step="0.1"
-              value={dayLog.activityFactor ?? 1.2}
-              onChange={(e) =>
-                handleMetaChange({
-                  activityFactor: Number(e.target.value) || 1.2,
-                })
-              }
-              style={{ width: "80px" }}
-            />
-          </label>
+      <hr />
 
-          <label>
-            Workout kcal (manual):{" "}
-            <input
-              type="number"
-              value={dayLog.workoutKcal ?? 0}
-              onChange={(e) =>
-                handleMetaChange({
-                  workoutKcal: Number(e.target.value) || 0,
-                })
-              }
-              style={{ width: "100px" }}
-            />
-          </label>
+      {/* 2. Daily Summary Cards */}
+      <div className="card-grid card-grid-3 section-spacer">
+        
+        {/* Card 1: Intake & Target */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Calories</span>
+            <span className="card-meta">Intake vs. Net Target</span>
+          </div>
+          <div className="stat-value">
+            {Math.round(totalIntakeKcal)} kcal
+          </div>
+          <div className="stat-label">
+            Target Net: {netDayKcal > 0 ? "+" : ""}
+            {Math.round(netDayKcal)} kcal
+          </div>
+        </div>
 
-          <label>
-            Weight (kg):{" "}
-            <input
-              type="number"
-              step="0.1"
-              value={dayLog.weightKg ?? ""}
-              onChange={(e) =>
-                handleMetaChange({
-                  weightKg: e.target.value ? Number(e.target.value) : null,
-                })
-              }
-              style={{ width: "80px" }}
-            />
-          </label>
+        {/* Card 2: Hydration & Notes */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Hydration & Notes</span>
+          </div>
+          <div className="stat-value">
+            {hydrationLitres.toFixed(1)} L
+          </div>
+          <div className="stat-label">
+            Notes: {notes ? "Logged" : "None"}
+          </div>
+        </div>
+        
+        {/* Card 3: Physical Stats (Weight & Workout) */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Physical Stats</span>
+          </div>
+          <div className="stat-value">
+            {dayLog.weightKg ? `${dayLog.weightKg.toFixed(1)} kg` : "—"}
+          </div>
+          <div className="stat-label">
+            Workout: {workoutKcal} kcal
+          </div>
+        </div>
+      </div>
+
+      <hr />
+
+      {/* 3. Day Meta Section (Inputs) */}
+      <section className="section-spacer">
+        <h2 className="section-title">Day Details (Inputs)</h2>
+        <div className="card-grid card-grid-4">
+          
+          {/* Activity Factor */}
+          <div className="card form-card">
+            <div className="card-header">Activity Factor</div>
+            <label className="form-group">
+              <input
+                type="number"
+                step="0.1"
+                min="1.0"
+                value={activityFactor}
+                onChange={(e) =>
+                  handleMetaChange({
+                    activityFactor: Number(e.target.value) || 1.2,
+                  })
+                }
+                className="input-full"
+              />
+              <small className="muted">Default: {state.profile.defaultActivityFactor}</small>
+            </label>
+          </div>
+
+          {/* Workout Kcal */}
+          <div className="card form-card">
+            <div className="card-header">Workout kcal (manual)</div>
+            <label className="form-group">
+              <input
+                type="number"
+                min="0"
+                value={workoutKcal}
+                onChange={(e) =>
+                  handleMetaChange({
+                    workoutKcal: Number(e.target.value) || 0,
+                  })
+                }
+                className="input-full"
+              />
+            </label>
+          </div>
+
+          {/* Weight */}
+          <div className="card form-card">
+            <div className="card-header">Weight (kg)</div>
+            <label className="form-group">
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={dayLog.weightKg ?? ""}
+                onChange={(e) =>
+                  handleMetaChange({
+                    weightKg: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                className="input-full"
+              />
+            </label>
+          </div>
+
+          {/* Hydration */}
+          <div className="card form-card">
+            <div className="card-header">Water (Litres)</div>
+            <label className="form-group">
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={hydrationLitres}
+                onChange={handleHydrationChange}
+                className="input-full"
+              />
+            </label>
+          </div>
+          
         </div>
       </section>
 
-      {/* Meals sections */}
+      <hr />
+      
+      {/* 4. Notes Section */}
+      <section className="section-spacer">
+        <h2 className="section-title">Notes</h2>
+        <textarea
+          value={notes}
+          onChange={handleNotesChange}
+          className="textarea-full"
+          placeholder="Add any notes about your day, mood, or activities here..."
+        />
+      </section>
+
+      <hr />
+
+      {/* 5. Meals sections (Kept mostly structural, added classes) */}
       {MEAL_TYPES.map((meal) => {
         const mealEntries = mealsByType[meal.id] || [];
+        const mealTotalKcal = mealEntries.reduce((sum, m) => sum + m.totalKcal, 0);
 
         return (
-          <section key={meal.id} style={{ marginBottom: "1.5rem" }}>
-            <h2>{meal.label}</h2>
+          <section key={meal.id} className="section-spacer">
+            <h2 className="section-title">{meal.label} ({mealTotalKcal} kcal)</h2>
 
             {/* Quick Add favourites */}
             {favouriteFoods.length > 0 && (
-              <div style={{ marginBottom: "0.5rem" }}>
-                <div style={{ marginBottom: "0.25rem" }}>
-                  <strong>Quick add favourites:</strong>
-                </div>
+              <div className="btn-row wrap-buttons">
+                <strong>Quick Add:</strong>
                 {favouriteFoods.map((food) => (
                   <button
                     key={food.id}
                     type="button"
                     onClick={() => handleQuickAddFavourite(meal.id, food)}
-                    style={{
-                      padding: "0.25rem 0.5rem",
-                      cursor: "pointer",
-                      marginRight: "0.25rem",
-                      marginBottom: "0.25rem",
-                    }}
+                    className="btn-secondary btn-small"
                   >
                     {food.name}
                   </button>
@@ -297,32 +423,26 @@ export default function DayLog() {
 
             {/* Meal list */}
             {mealEntries.length === 0 ? (
-              <p>No entries yet.</p>
+              <p className="muted">No entries yet for {meal.label}.</p>
             ) : (
-              <table
-                style={{
-                  borderCollapse: "collapse",
-                  width: "100%",
-                  maxWidth: "600px",
-                }}
-              >
+              <table className="data-table meal-table">
                 <thead>
                   <tr>
-                    <th style={{ textAlign: "left" }}>Food</th>
-                    <th style={{ textAlign: "right" }}>Qty</th>
-                    <th style={{ textAlign: "left" }}>Unit</th>
-                    <th style={{ textAlign: "right" }}>kcal / unit</th>
-                    <th style={{ textAlign: "right" }}>Total kcal</th>
-                    <th style={{ textAlign: "left" }}>Actions</th>
+                    <th className="text-left">Food</th>
+                    <th className="text-right">Qty</th>
+                    <th className="text-left">Unit</th>
+                    <th className="text-right">kcal / unit</th>
+                    <th className="text-right">Total kcal</th>
+                    <th className="text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {mealEntries.map((m) => {
                     const isEditing = editingMealId === m.id;
                     return (
-                      <tr key={m.id}>
+                      <tr key={m.id} className={isEditing ? 'editing-row' : ''}>
                         <td>{m.foodNameSnapshot}</td>
-                        <td style={{ textAlign: "right" }}>
+                        <td className="text-right">
                           {isEditing ? (
                             <input
                               type="number"
@@ -332,30 +452,31 @@ export default function DayLog() {
                               onChange={(e) =>
                                 setEditingQuantity(e.target.value)
                               }
-                              style={{ width: "70px" }}
+                              className="input-small text-right"
                             />
                           ) : (
                             m.quantity
                           )}
                         </td>
                         <td>{m.unitLabelSnapshot}</td>
-                        <td style={{ textAlign: "right" }}>
+                        <td className="text-right">
                           {m.kcalPerUnitSnapshot}
                         </td>
-                        <td style={{ textAlign: "right" }}>{m.totalKcal}</td>
-                        <td>
+                        <td className="text-right">{m.totalKcal}</td>
+                        <td className="btn-row">
                           {isEditing ? (
                             <>
                               <button
                                 type="button"
                                 onClick={() => handleSaveEditMeal(m)}
+                                className="btn-primary btn-small"
                               >
                                 Save
                               </button>
                               <button
                                 type="button"
                                 onClick={cancelEditMeal}
-                                style={{ marginLeft: "0.25rem" }}
+                                className="btn-secondary btn-small"
                               >
                                 Cancel
                               </button>
@@ -365,13 +486,14 @@ export default function DayLog() {
                               <button
                                 type="button"
                                 onClick={() => startEditMeal(m)}
+                                className="btn-secondary btn-small"
                               >
                                 Edit
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteMeal(m.id)}
-                                style={{ marginLeft: "0.25rem" }}
+                                className="btn-danger btn-small"
                               >
                                 ✕
                               </button>
@@ -388,17 +510,10 @@ export default function DayLog() {
             {/* Add meal form for this meal type */}
             <form
               onSubmit={(e) => handleAddMeal(e, meal.id)}
-              style={{ marginTop: "0.5rem", maxWidth: "600px" }}
+              className="add-meal-form"
             >
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.5rem",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ flex: "1 1 250px" }}>
+              <div className="form-row-compact">
+                <div className="form-group food-autocomplete-container">
                   <FoodAutocomplete
                     foods={allFoods}
                     value={newMealFoodSearch[meal.id]}
@@ -407,7 +522,6 @@ export default function DayLog() {
                         ...prev,
                         [meal.id]: text,
                       }));
-                      // If user starts typing again, clear selection for this meal
                       setNewMealFoodId((prev) => ({
                         ...prev,
                         [meal.id]: null,
@@ -427,90 +541,54 @@ export default function DayLog() {
                   />
                 </div>
 
-                <label>
-                  Qty:{" "}
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.25"
-                    value={newQuantity[meal.id]}
-                    onChange={(e) =>
-                      setNewQuantity((prev) => ({
-                        ...prev,
-                        [meal.id]: e.target.value,
-                      }))
-                    }
-                    style={{ width: "80px" }}
-                  />
-                </label>
+                <div className="form-group">
+                  <label>
+                    Qty:{" "}
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.25"
+                      value={newQuantity[meal.id]}
+                      onChange={(e) =>
+                        setNewQuantity((prev) => ({
+                          ...prev,
+                          [meal.id]: e.target.value,
+                        }))
+                      }
+                      className="input-small text-right"
+                    />
+                  </label>
+                </div>
 
-                <button type="submit">Add</button>
+                <button type="submit" className="btn-primary">Add</button>
               </div>
 
-              <small style={{ display: "block", marginTop: "0.25rem" }}>
-                Can’t find a food? Add it first in the <strong>Foods</strong>{" "}
-                tab.
+              <small className="muted form-help-text">
+                Can’t find a food? Add it first in the <strong>Foods</strong> tab.
               </small>
 
               {newMealFoodId[meal.id] && (
-                <div style={{ marginTop: "0.25rem", fontSize: "0.9rem" }}>
+                <div className="form-selection-info">
                   Selected:{" "}
-                  {
-                    allFoods.find(
-                      (f) => f.id === newMealFoodId[meal.id]
-                    )?.name
-                  }{" "}
+                  <strong>
+                    {
+                      allFoods.find(
+                        (f) => f.id === newMealFoodId[meal.id]
+                      )?.name
+                    }
+                  </strong>
                   (Unit:{" "}
                   {
                     allFoods.find(
                       (f) => f.id === newMealFoodId[meal.id]
                     )?.unitLabel
-                  }
-                  )
+                  })
                 </div>
               )}
             </form>
           </section>
         );
       })}
-
-      <hr />
-
-      {/* Hydration & Notes */}
-      <section style={{ marginTop: "1rem" }}>
-        <h2>Hydration</h2>
-        <label>
-          Water (litres) for this day:{" "}
-          <input
-            type="number"
-            step="0.1"
-            value={hydrationLitres}
-            onChange={(e) =>
-              dispatch({
-                type: "UPDATE_DAY_HYDRATION",
-                payload: {
-                  date: selectedDate,
-                  hydrationLitres: Number(e.target.value) || 0,
-                },
-              })
-            }
-          />
-        </label>
-      </section>
-
-      <section style={{ marginTop: "1rem" }}>
-        <h2>Notes</h2>
-        <textarea
-          value={notes}
-          onChange={(e) =>
-            dispatch({
-              type: "UPDATE_DAY_NOTES",
-              payload: { date: selectedDate, notes: e.target.value },
-            })
-          }
-          style={{ width: "100%", maxWidth: "500px", minHeight: "80px" }}
-        />
-      </section>
-    </div>
+    </>
   );
 }

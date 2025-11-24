@@ -13,9 +13,13 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
-          {/* /day -> today’s log, /day/:date -> specific day */}
-          <Route path="/day" element={<DayLog />} />
-          <Route path="/day/:date" element={<DayLog />} />
+          
+          {/* FIX: Change path from /day to the relative path 'day-log' to match Layout.jsx link */}
+          {/* Day Log for today */}
+          <Route path="day-log" element={<DayLog />} /> 
+          {/* Day Log for specific date */}
+          <Route path="day-log/:date" element={<DayLog />} /> 
+          
           <Route path="/foods" element={<Foods />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="/settings" element={<Settings />} />
