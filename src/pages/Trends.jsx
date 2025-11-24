@@ -1,139 +1,229 @@
 // src/pages/Trends.jsx
-import React from "react";
-import { useAppState } from "../context/AppStateContext";
+import React, { useMemo, useState, useEffect } from "react";
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+  CartesianGrid,
 } from "recharts";
+import { useAppState, useProfile } from "../context/AppStateContext";
 
-function buildChartData(dayLogs) {
-  if (!dayLogs) return [];
+// Same logic as dashboard: how we interpret each day's numbers
+function computeDayStatsForProfile(dayLog, profile) {
+  const meals = Array.isArray(dayLog.meals) ? dayLog.meals : [];
+  const totalIntake = meals.reduce(
+    (sum, m) => sum + (Number(m.totalKcal) || 0),
+    0
+  );
 
-  return Object.entries(dayLogs)
-    .map(([date, log]) => {
-      const meals = log.meals || [];
+  const baseTarget = Number(profile.dailyKcalTarget) || 0;
+  const activityFactor =
+    Number(dayLog.activityFactor || profile.defaultActivityFactor || 1);
 
-      const totalIntake = meals.reduce(
-        (sum, m) => sum + (m.totalKcal || 0),
-        0
-      );
+  const targetForDay = baseTarget * activityFactor;
+  const netKcal = totalIntake - targetForDay; // +ve = surplus, -ve = deficit
 
-      const workout = log.workoutKcal || 0;
-      const net = totalIntake - workout;
-
-      // If literally nothing happened this day, skip it
-      if (totalIntake === 0 && workout === 0) return null;
-
-      return {
-        date,
-        // show only MM-DD on axis for now
-        label: date.slice(5),
-        intake: totalIntake,
-        burn: workout,
-        net,
-        weightKg:
-          typeof log.weightKg === "number" ? log.weightKg : undefined,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.date.localeCompare(b.date));
+  return { totalIntake, targetForDay, netKcal };
 }
 
 export default function Trends() {
-  const {
-    state: { dayLogs },
-  } = useAppState();
+  const { state, dispatch } = useAppState();
+  const { profile } = useProfile();
 
-  const chartData = React.useMemo(
-    () => buildChartData(dayLogs),
+  const [weightInput, setWeightInput] = useState("");
+
+  const dayLogs = state.dayLogs || {};
+
+  // Sorted array of all day logs
+  const dayArray = useMemo(
+    () =>
+      Object.values(dayLogs).sort((a, b) =>
+        (a.date || "").localeCompare(b.date || "")
+      ),
     [dayLogs]
   );
 
-  if (!chartData.length) {
-    return (
-      <div>
-        <h2>Trends</h2>
-        <p>No data yet. Log a few days of meals and come back!</p>
-      </div>
-    );
-  }
-
-  const weightData = chartData.filter(
-    (d) => typeof d.weightKg === "number"
+  // ===== Calories chart data =====
+  const calorieChartData = useMemo(
+    () =>
+      dayArray
+        .filter((d) => Array.isArray(d.meals) && d.meals.length > 0)
+        .map((d) => {
+          const { totalIntake, targetForDay, netKcal } =
+            computeDayStatsForProfile(d, profile);
+          return {
+            date: d.date,
+            intake: Math.round(totalIntake),
+            target: Math.round(targetForDay),
+            net: Math.round(netKcal),
+          };
+        }),
+    [dayArray, profile]
   );
+
+  // ===== Weight chart data =====
+  const weightChartData = useMemo(
+    () =>
+      dayArray
+        .filter(
+          (d) =>
+            d.weightKg !== null &&
+            d.weightKg !== undefined &&
+            d.weightKg !== ""
+        )
+        .map((d) => ({
+          date: d.date,
+          weight: Number(d.weightKg),
+        })),
+    [dayArray]
+  );
+
+  // Pre-fill the weight input whenever the selected date changes
+  useEffect(() => {
+    const current = dayLogs[state.selectedDate];
+    if (current && current.weightKg != null && current.weightKg !== "") {
+      setWeightInput(String(current.weightKg));
+    } else {
+      setWeightInput("");
+    }
+  }, [state.selectedDate, dayLogs]);
+
+  const selectedWeight =
+    dayLogs[state.selectedDate] && dayLogs[state.selectedDate].weightKg != null
+      ? dayLogs[state.selectedDate].weightKg
+      : null;
+
+  const handleSaveWeight = (e) => {
+    e.preventDefault();
+    const parsed = parseFloat(weightInput);
+    if (Number.isNaN(parsed)) {
+      alert("Please enter a valid weight (e.g. 82.4).");
+      return;
+    }
+
+    dispatch({
+      type: "UPDATE_DAY_META",
+      payload: {
+        date: state.selectedDate,
+        patch: { weightKg: parsed },
+      },
+    });
+
+    alert(`Saved ${parsed} kg for ${state.selectedDate}`);
+  };
 
   return (
     <div>
       <h2>Trends</h2>
 
-      {/* Calories chart */}
-      <div style={{ width: "100%", height: 320, marginTop: 16 }}>
-        <h3>Calories: intake, burn, net</h3>
-        <ResponsiveContainer>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="intake" name="Intake" />
-            <Line type="monotone" dataKey="burn" name="Burn" />
-            <Line type="monotone" dataKey="net" name="Net" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {/* ───── Calories over time ───── */}
+      <section style={{ marginBottom: "2rem" }}>
+        <h3>Calories vs Target</h3>
+        {calorieChartData.length === 0 ? (
+          <p>No data yet. Log a few days of meals and come back!</p>
+        ) : (
+          <div style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer>
+              <LineChart data={calorieChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                {/* Target line */}
+                <Line
+                  type="monotone"
+                  dataKey="target"
+                  stroke="#8884d8"
+                  dot={false}
+                  name="Target"
+                />
+                {/* Actual intake */}
+                <Line
+                  type="monotone"
+                  dataKey="intake"
+                  stroke="#82ca9d"
+                  name="Intake"
+                />
+                {/* Zero-net reference */}
+                <ReferenceLine
+                  y={0}
+                  label="0 net"
+                  stroke="#ccc"
+                  strokeDasharray="3 3"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </section>
 
-      {/* Weight chart (only if we have any weight entries) */}
-      {weightData.length > 0 && (
-        <div style={{ width: "100%", height: 320, marginTop: 32 }}>
-          <h3>Weight trend</h3>
-          <ResponsiveContainer>
-            <LineChart data={weightData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="weightKg"
-                name="Weight (kg)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* ───── Weight over time ───── */}
+      <section style={{ marginBottom: "2rem" }}>
+        <h3>Weight Trend</h3>
+        {weightChartData.length === 0 ? (
+          <p>
+            No weight logs yet. Save your weight below and you&apos;ll see the
+            graph here.
+          </p>
+        ) : (
+          <div style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer>
+              <LineChart data={weightChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis
+                  domain={["auto", "auto"]}
+                  tickFormatter={(v) => `${v} kg`}
+                />
+                <Tooltip formatter={(v) => `${v} kg`} />
+                <Line
+                  type="monotone"
+                  dataKey="weight"
+                  stroke="#ff7300"
+                  name="Weight (kg)"
+                  dot={{ r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </section>
 
-      {/* Simple textual summary so we have something even if charts misbehave later */}
-      <h3 style={{ marginTop: 32 }}>Summary</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Intake (kcal)</th>
-            <th>Burn (kcal)</th>
-            <th>Net (kcal)</th>
-            <th>Weight (kg)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {chartData.map((d) => (
-            <tr key={d.date}>
-              <td>{d.date}</td>
-              <td>{d.intake}</td>
-              <td>{d.burn}</td>
-              <td>{d.net}</td>
-              <td>{d.weightKg ?? "-"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* ───── Weight logging form ───── */}
+      <section>
+        <h3>Log Weight</h3>
+        <p>
+          Selected date: <strong>{state.selectedDate}</strong>
+        </p>
+        <p>
+          Current stored weight:{" "}
+          {selectedWeight != null ? (
+            <strong>{selectedWeight} kg</strong>
+          ) : (
+            "none yet"
+          )}
+        </p>
+
+        <form onSubmit={handleSaveWeight} style={{ marginTop: "1rem" }}>
+          <label>
+            Weight (kg):
+            <input
+              type="number"
+              step="0.1"
+              value={weightInput}
+              onChange={(e) => setWeightInput(e.target.value)}
+              style={{ marginLeft: "0.5rem" }}
+            />
+          </label>
+          <button type="submit" style={{ marginLeft: "0.75rem" }}>
+            Save weight
+          </button>
+        </form>
+      </section>
     </div>
   );
 }
