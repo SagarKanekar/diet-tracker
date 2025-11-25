@@ -6,6 +6,13 @@ import React, {
   useReducer,
 } from "react";
 
+// ✅ Import centralized calculation logic
+import { 
+  calculateDayTDEE, 
+  computeDayMealTotals,
+  calculateEffectiveWorkout 
+} from "../utils/calculations";
+
 export const MEAL_TYPES = ["lunch", "dinner", "extras"];
 
 // --- ACTION TYPES ---
@@ -38,19 +45,9 @@ const initialState = {
 
 // --------- HELPERS ---------
 
-// ✅ Helper: Calculates effective calories. 
-// Handles the case where intensity might be missing.
+// ✅ Helper: Calculates effective calories (Legacy/Internal use)
 export function effectiveWorkoutKcal(day) {
-  if (!day) return 0;
-  // Use standard field 'workoutCalories', fallback to legacy 'workoutKcal'
-  const raw = day.workoutCalories ?? day.workoutKcal ?? 0;
-  
-  // If IF is null, undefined, or 0, just return raw calories (implies 1.0 or raw entry)
-  // Note: If you want "No IF" to mean "Standard Burn", return raw.
-  if (day.intensityFactor == null || day.intensityFactor === 0) {
-    return raw;
-  }
-  return Math.round(raw * day.intensityFactor);
+  return calculateEffectiveWorkout(day);
 }
 
 function loadFromStorage() {
@@ -77,7 +74,6 @@ function saveToStorage(state) {
   } catch { /* ignore */ }
 }
 
-// ✅ Ensure every day object has the correct shape
 function ensureDayLog(state, date) {
   const existing = state.dayLogs[date];
   if (existing) return existing;
@@ -96,6 +92,51 @@ function ensureDayLog(state, date) {
     workoutDescription: "",   // String
     
     workoutKcal: 0, // Legacy support
+  };
+}
+
+// --------- SELECTOR / DERIVED DATA ---------
+
+/**
+ * ✅ NEW: Centralized Selector for Day Data
+ * Returns all computed stats for a specific date so components 
+ * don't have to redo the math manually.
+ */
+export function getDayDerived(state, dateKey) {
+  const day = state.dayLogs?.[dateKey] || {};
+  const profile = state.profile || {};
+
+  // 1. Get factors
+  const bmr = Number(profile.bmr) || 0;
+  const activityFactor = Number(day.activityFactor ?? profile.defaultActivityFactor ?? 1.2);
+  const workoutCalories = Number(day.workoutCalories ?? day.workoutKcal ?? 0);
+  const intensityFactor = day.intensityFactor; // can be null
+
+  // 2. Compute TDEE (Base + Workout * Intensity)
+  const tdee = calculateDayTDEE({ 
+    bmr, 
+    activityFactor, 
+    workoutCalories, 
+    intensityFactor 
+  });
+
+  // 3. Compute Intake
+  const totals = computeDayMealTotals(day);
+  const totalIntake = totals.total;
+
+  // 4. Compute Net (Surplus/Deficit)
+  // Convention: Positive = Surplus (Ate more than burned)
+  // Convention: Negative = Deficit (Burned more than ate)
+  const netKcal = Math.round(totalIntake - tdee);
+
+  return { 
+    tdee, 
+    totalIntake, 
+    netKcal, 
+    workoutCalories, 
+    intensityFactor,
+    // Also return breakdown if needed
+    meals: totals 
   };
 }
 
@@ -159,16 +200,13 @@ function appReducer(state, action) {
       return { ...state, dayLogs: { ...state.dayLogs, [date]: { ...dayLog, ...patch } } };
     }
 
-    // ✅ SET_WORKOUT: Bulk update, ensuring parsing
     case "SET_WORKOUT": {
       const { date, workoutCalories, intensityFactor, workoutDescription } = action.payload;
       const dayLog = ensureDayLog(state, date);
 
       const updatedDay = {
         ...dayLog,
-        // Ensure Number
         workoutCalories: Number(workoutCalories) || 0,
-        // Ensure Number or Null
         intensityFactor: (intensityFactor === "" || intensityFactor === null) 
           ? null 
           : Number(intensityFactor),
@@ -178,33 +216,25 @@ function appReducer(state, action) {
       return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
-    // ✅ UPDATE_DAY_WORKOUT: Single field update
     case UPDATE_DAY_WORKOUT: {
       const { date, workoutKcal } = action.payload;
       const dayLog = ensureDayLog(state, date);
-      // Map payload 'workoutKcal' to state 'workoutCalories'
       const updatedDay = { ...dayLog, workoutCalories: Number(workoutKcal) || 0 };
-      
       return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
-    // ✅ UPDATE_DAY_INTENSITY: Single field update
     case UPDATE_DAY_INTENSITY: {
       const { date, intensityFactor } = action.payload;
       const dayLog = ensureDayLog(state, date);
-      // Ensure clean parse
       const val = (intensityFactor === "" || intensityFactor === null) ? null : Number(intensityFactor);
       const updatedDay = { ...dayLog, intensityFactor: val };
-      
       return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
-    // ✅ UPDATE_DAY_WORKOUT_DESC: Single field update
     case UPDATE_DAY_WORKOUT_DESC: {
       const { date, workoutDesc } = action.payload;
       const dayLog = ensureDayLog(state, date);
       const updatedDay = { ...dayLog, workoutDescription: workoutDesc || "" };
-      
       return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
@@ -235,8 +265,12 @@ const AppStateContext = createContext(null);
 export function AppStateProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState, loadFromStorage);
   useEffect(() => { saveToStorage(state); }, [state]);
+  
+  // ✅ Exposed getDayDerived here
+  const value = { state, dispatch, getDayDerived }; 
+
   return (
-    <AppStateContext.Provider value={{ state, dispatch }}>
+    <AppStateContext.Provider value={value}>
       {children}
     </AppStateContext.Provider>
   );

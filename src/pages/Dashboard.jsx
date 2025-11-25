@@ -5,7 +5,7 @@ import { useAppState } from "../context/AppStateContext";
 import { 
   computeDayMealTotals, 
   computeTDEEForDay, 
-  calculateEffectiveWorkout
+  calculateEffectiveWorkout 
 } from "../utils/calculations";
 import { 
   LayoutDashboard, 
@@ -21,27 +21,32 @@ import {
 import "../styles/Dashboard.css";
 
 export default function Dashboard() {
-  const { state } = useAppState();
-  const { profile, dayLogs } = state;
+  // ✅ 1. Get the centralized selector
+  const { state, getDayDerived } = useAppState();
+  const { dayLogs, profile } = state;
 
-  // --- 1. Today's Data ---
+  // --- 2. Today's Data (Using Context Logic) ---
   const todayIso = new Date().toISOString().slice(0, 10);
-  const todayLog = dayLogs[todayIso] || { date: todayIso };
-
-  // Computations
-  const todayTotals = computeDayMealTotals(todayLog);
-  const todayTDEE = computeTDEEForDay(todayLog, profile);
-  const todayWorkout = calculateEffectiveWorkout(todayLog);
-  const todayHydration = todayLog.hydrationLitres ?? 0;
-
-  // Deficit = (Limit + Burn) - Food
-  const todayLimit = todayTDEE + todayWorkout;
-  const todayDeficit = todayLimit - todayTotals.total;
   
-  // Progress bar calc (capped at 100%)
-  const progressPercent = Math.min(100, (todayTotals.total / (todayLimit || 2000)) * 100);
+  // Use the central helper to get consistent math
+  const { 
+    tdee: todayLimit,      // This is Base TDEE + Effective Workout
+    totalIntake: todayIntake, 
+    netKcal: todayNetState, // (Intake - Limit). Positive = Surplus, Negative = Deficit
+    workoutCalories: todayWorkoutRaw, // Raw log
+    intensityFactor 
+  } = getDayDerived(state, todayIso);
 
-  // --- 2. All-Time & Streak Data ---
+  // Dashboard "Deficit" view: We want Positive = Good (Calories Left)
+  const todayDeficit = -todayNetState; 
+  
+  const todayHydration = dayLogs[todayIso]?.hydrationLitres ?? 0;
+
+  // Progress bar calc (capped at 100%)
+  // Use safe denominator to avoid divide-by-zero
+  const progressPercent = Math.min(100, (todayIntake / (todayLimit || 2000)) * 100);
+
+  // --- 3. All-Time & Streak Data (Iterative) ---
   const allDays = Object.values(dayLogs || {});
   
   const effectiveDays = allDays.filter((day) => {
@@ -75,6 +80,7 @@ export default function Dashboard() {
     const t = computeDayMealTotals(d).total;
     const limit = computeTDEEForDay(d, profile) + calculateEffectiveWorkout(d);
     
+    // Success = You didn't overeat (Deficit >= 0)
     if ((limit - t) >= 0) {
       currentStreak += 1;
     } else {
@@ -116,7 +122,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Simple visual progress bar */}
+          {/* Visual progress bar */}
           <div className="progress-bar-bg">
             <div 
                 className="progress-bar-fill" 
@@ -128,8 +134,9 @@ export default function Dashboard() {
           </div>
 
           <div className="dc-footer" style={{marginTop:'1rem', display:'flex', justifyContent:'space-between'}}>
-            <span>Intake: <strong>{Math.round(todayTotals.total)}</strong></span>
-            <span>Limit (TDEE+Burn): <strong>{Math.round(todayLimit)}</strong></span>
+            <span>Intake: <strong>{Math.round(todayIntake)}</strong></span>
+            {/* ✅ Using derived TDEE (Base + Workout) */}
+            <span>Target (TDEE): <strong>{Math.round(todayLimit)}</strong></span>
           </div>
         </div>
       </section>
