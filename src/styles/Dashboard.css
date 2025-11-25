@@ -1,0 +1,197 @@
+/* src/styles/Dashboard.css */
+
+/* --- Page Layout --- */
+.dashboard-page {
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  font-family: inherit;
+}
+
+/* --- Header --- */
+.dashboard-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: white; /* Dark mode background assumed */
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dashboard-subtitle {
+  color: #a0aec0;
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+}
+
+/* --- Cards Generic --- */
+.dash-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s;
+}
+
+.dash-card:hover {
+  transform: translateY(-2px);
+}
+
+/* --- Typography within Cards --- */
+.dc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.dc-title {
+  color: #718096;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dc-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #2d3748;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.dc-footer {
+  font-size: 0.9rem;
+  color: #718096;
+  font-weight: 500;
+  margin-top: auto;
+}
+
+/* --- Hero Section (Today's Net) --- */
+.dash-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.hero-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.hero-subtext {
+  font-size: 1rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.progress-bar-bg {
+  height: 8px;
+  background: #edf2f7;
+  border-radius: 4px;
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #3182ce;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* --- The "Trio" Row (Hydration, Streak, All-time) --- */
+.dash-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Force 3 columns */
+  gap: 1.5rem;
+}
+
+/* --- Actions Section --- */
+.dash-actions {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dash-btn-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.dash-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.dash-btn-primary {
+  background: #3182ce;
+  color: white;
+}
+.dash-btn-primary:hover {
+  background: #2b6cb0;
+  transform: translateY(-1px);
+}
+
+.dash-btn-secondary {
+  background: #edf2f7;
+  color: #4a5568;
+}
+.dash-btn-secondary:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+/* --- Colors --- */
+.text-green { color: #38a169; }
+.text-red { color: #e53e3e; }
+.text-blue { color: #3182ce; }
+.text-orange { color: #dd6b20; }
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .dash-grid-3 {
+    grid-template-columns: 1fr 1fr; /* 2 cols on tablet */
+  }
+}
+@media (max-width: 600px) {
+  .dash-grid-3 {
+    grid-template-columns: 1fr; /* Stack on phone */
+  }
+  .dash-btn-row {
+    flex-direction: column;
+  }
+  .dash-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

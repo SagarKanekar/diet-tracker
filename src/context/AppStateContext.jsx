@@ -6,7 +6,6 @@ import React, {
   useReducer,
 } from "react";
 
-// --- NEW: Central definition of meal types (Breakfast removed) ---
 export const MEAL_TYPES = ["lunch", "dinner", "extras"];
 
 // --- ACTION TYPES ---
@@ -18,39 +17,37 @@ const DEFAULT_PROFILE = {
   name: "",
   heightCm: "",
   weightKg: "",
-  sex: "male", // or "female"/"other"
+  sex: "male", 
   bmr: "", 
   dailyKcalTarget: 2200,
-  defaultActivityPreset: "sedentary", // "sedentary" | "college" | "custom"
+  defaultActivityPreset: "sedentary", 
   defaultActivityFactor: 1.2,
   proteinTarget: "",
 };
 
 const LOCAL_STORAGE_KEY = "diet-tracker-app-state-v1";
-
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 // --------- INITIAL STATE ---------
 const initialState = {
-  profile: {
-    ...DEFAULT_PROFILE,
-  },
+  profile: { ...DEFAULT_PROFILE },
   foodItems: [],
-  dayLogs: {}, // Object keyed by date string
+  dayLogs: {}, 
   selectedDate: todayIso(),
 };
 
 // --------- HELPERS ---------
 
-// ✅ NEW: Helper to calculate effective calories based on IF
+// ✅ Helper: Calculates effective calories. 
+// Handles the case where intensity might be missing.
 export function effectiveWorkoutKcal(day) {
   if (!day) return 0;
-  // Support new field 'workoutCalories' and fallback to old 'workoutKcal'
+  // Use standard field 'workoutCalories', fallback to legacy 'workoutKcal'
   const raw = day.workoutCalories ?? day.workoutKcal ?? 0;
   
-  // If intensityFactor is null/undefined, return raw. 
-  // If it is set (e.g. 1.1), multiply.
-  if (day.intensityFactor === null || day.intensityFactor === undefined) {
+  // If IF is null, undefined, or 0, just return raw calories (implies 1.0 or raw entry)
+  // Note: If you want "No IF" to mean "Standard Burn", return raw.
+  if (day.intensityFactor == null || day.intensityFactor === 0) {
     return raw;
   }
   return Math.round(raw * day.intensityFactor);
@@ -60,16 +57,11 @@ function loadFromStorage() {
   try {
     const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) return initialState;
-
     const parsed = JSON.parse(raw);
-
     return {
       ...initialState,
       ...parsed,
-      profile: {
-        ...initialState.profile,
-        ...(parsed.profile || {}),
-      },
+      profile: { ...initialState.profile, ...(parsed.profile || {}) },
       dayLogs: parsed.dayLogs || {},
       foodItems: parsed.foodItems || [],
       selectedDate: parsed.selectedDate || todayIso(),
@@ -82,11 +74,10 @@ function loadFromStorage() {
 function saveToStorage(state) {
   try {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
+// ✅ Ensure every day object has the correct shape
 function ensureDayLog(state, date) {
   const existing = state.dayLogs[date];
   if (existing) return existing;
@@ -99,13 +90,12 @@ function ensureDayLog(state, date) {
     notes: "",
     meals: [], 
     
-    // ✅ NEW: Default Workout Fields
-    workoutCalories: 0,       // Standard kcal recorded
-    intensityFactor: null,    // null = no multiplier ("-")
-    workoutDescription: "",   // Optional text
+    // ✅ STRICT SHAPE: Default Workout Fields
+    workoutCalories: 0,       // Number
+    intensityFactor: null,    // null or Number
+    workoutDescription: "",   // String
     
-    // Legacy support (optional, can remain 0)
-    workoutKcal: 0,
+    workoutKcal: 0, // Legacy support
   };
 }
 
@@ -114,284 +104,139 @@ function ensureDayLog(state, date) {
 function appReducer(state, action) {
   switch (action.type) {
     case "SET_SELECTED_DATE": {
-      return {
-        ...state,
-        selectedDate: action.payload,
-      };
+      return { ...state, selectedDate: action.payload };
     }
 
-    // --- NEW: Handle importing/overwriting the entire state ---
     case "IMPORT_STATE": {
-      return {
-        ...action.payload,
-      };
+      return { ...action.payload };
     }
 
     case "UPSERT_FOOD_ITEM": {
-      const {
-        id,
-        name,
-        category,
-        unitLabel,
-        kcalPerUnit,
-        isFavourite = false,
-      } = action.payload;
-
+      const { id, name, category, unitLabel, kcalPerUnit, isFavourite = false } = action.payload;
       const existingIndex = state.foodItems.findIndex((f) => f.id === id);
-
       if (existingIndex >= 0) {
         const updated = [...state.foodItems];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          name,
-          category,
-          unitLabel,
-          kcalPerUnit,
-          isFavourite,
-        };
+        updated[existingIndex] = { ...updated[existingIndex], name, category, unitLabel, kcalPerUnit, isFavourite };
         return { ...state, foodItems: updated };
       }
-
       return {
         ...state,
-        foodItems: [
-          ...state.foodItems,
-          {
-            id,
-            name,
-            category,
-            unitLabel,
-            kcalPerUnit,
-            isFavourite,
-          },
-        ],
+        foodItems: [...state.foodItems, { id, name, category, unitLabel, kcalPerUnit, isFavourite }],
       };
     }
 
     case "ADD_MEAL_ENTRY": {
-      const {
-        date,
-        mealType,
-        foodItemId,
-        foodNameSnapshot,
-        unitLabelSnapshot,
-        kcalPerUnitSnapshot,
-        quantity,
-        totalKcal,
-      } = action.payload;
-
+      const { date, mealType, foodItemId, foodNameSnapshot, unitLabelSnapshot, kcalPerUnitSnapshot, quantity, totalKcal } = action.payload;
       const dayLog = ensureDayLog(state, date);
-
-      const newMeal = {
-        id: action.payload.id,
-        mealType,
-        foodItemId,
-        foodNameSnapshot,
-        unitLabelSnapshot,
-        kcalPerUnitSnapshot,
-        quantity,
-        totalKcal,
-      };
-
-      const updatedDay = {
-        ...dayLog,
-        meals: [...dayLog.meals, newMeal],
-      };
-
-      return {
-        ...state,
-        dayLogs: {
-          ...state.dayLogs,
-          [date]: updatedDay,
-        },
-      };
+      const newMeal = { id: action.payload.id, mealType, foodItemId, foodNameSnapshot, unitLabelSnapshot, kcalPerUnitSnapshot, quantity, totalKcal };
+      const updatedDay = { ...dayLog, meals: [...dayLog.meals, newMeal] };
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
     case "DELETE_MEAL_ENTRY": {
       const { date, mealId } = action.payload;
       const dayLog = state.dayLogs[date];
       if (!dayLog) return state;
-
-      const updatedDay = {
-        ...dayLog,
-        meals: dayLog.meals.filter((m) => m.id !== mealId),
-      };
-
-      return {
-        ...state,
-        dayLogs: {
-          ...state.dayLogs,
-          [date]: updatedDay,
-        },
-      };
+      const updatedDay = { ...dayLog, meals: dayLog.meals.filter((m) => m.id !== mealId) };
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
     case "UPDATE_MEAL_ENTRY": {
       const { date, mealId, quantity } = action.payload;
       const dayLog = state.dayLogs[date];
       if (!dayLog) return state;
-
       const updatedMeals = (dayLog.meals || []).map((m) => {
         if (m.id !== mealId) return m;
-
-        const perUnit =
-          m.kcalPerUnitSnapshot ??
-          (m.quantity ? m.totalKcal / m.quantity : 0);
-
-        const newQuantity = quantity;
-        const newTotalKcal = Math.round(newQuantity * perUnit);
-
-        return {
-          ...m,
-          quantity: newQuantity,
-          totalKcal: newTotalKcal,
-          kcalPerUnitSnapshot: perUnit,
-        };
+        const perUnit = m.kcalPerUnitSnapshot ?? (m.quantity ? m.totalKcal / m.quantity : 0);
+        return { ...m, quantity, totalKcal: Math.round(quantity * perUnit), kcalPerUnitSnapshot: perUnit };
       });
-
-      const updatedDay = { ...dayLog, meals: updatedMeals };
-
-      return {
-        ...state,
-        dayLogs: {
-          ...state.dayLogs,
-          [date]: updatedDay,
-        },
-      };
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: { ...dayLog, meals: updatedMeals } } };
     }
 
     case "UPDATE_DAY_META": {
       const { date, patch } = action.payload;
       const dayLog = ensureDayLog(state, date);
-
-      const updatedDay = {
-        ...dayLog,
-        ...patch,
-      };
-
-      return {
-        ...state,
-        dayLogs: {
-          ...state.dayLogs,
-          [date]: updatedDay,
-        },
-      };
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: { ...dayLog, ...patch } } };
     }
 
-    // ✅ Set all workout fields at once
+    // ✅ SET_WORKOUT: Bulk update, ensuring parsing
     case "SET_WORKOUT": {
       const { date, workoutCalories, intensityFactor, workoutDescription } = action.payload;
       const dayLog = ensureDayLog(state, date);
 
       const updatedDay = {
         ...dayLog,
+        // Ensure Number
         workoutCalories: Number(workoutCalories) || 0,
+        // Ensure Number or Null
         intensityFactor: (intensityFactor === "" || intensityFactor === null) 
           ? null 
           : Number(intensityFactor),
         workoutDescription: workoutDescription || "",
       };
 
-      return {
-        ...state,
-        dayLogs: {
-          ...state.dayLogs,
-          [date]: updatedDay,
-        },
-      };
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
-    // ✅ Granular Update: Workout Calories only
+    // ✅ UPDATE_DAY_WORKOUT: Single field update
     case UPDATE_DAY_WORKOUT: {
       const { date, workoutKcal } = action.payload;
       const dayLog = ensureDayLog(state, date);
+      // Map payload 'workoutKcal' to state 'workoutCalories'
       const updatedDay = { ...dayLog, workoutCalories: Number(workoutKcal) || 0 };
       
-      return { 
-        ...state, 
-        dayLogs: { ...state.dayLogs, [date]: updatedDay } 
-      };
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
-    // ✅ Granular Update: Intensity Factor only
+    // ✅ UPDATE_DAY_INTENSITY: Single field update
     case UPDATE_DAY_INTENSITY: {
       const { date, intensityFactor } = action.payload;
       const dayLog = ensureDayLog(state, date);
-      const updatedDay = { ...dayLog, intensityFactor: intensityFactor === "" ? null : Number(intensityFactor) };
+      // Ensure clean parse
+      const val = (intensityFactor === "" || intensityFactor === null) ? null : Number(intensityFactor);
+      const updatedDay = { ...dayLog, intensityFactor: val };
       
-      return { 
-        ...state, 
-        dayLogs: { ...state.dayLogs, [date]: updatedDay } 
-      };
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
-    // ✅ Granular Update: Workout Description only
+    // ✅ UPDATE_DAY_WORKOUT_DESC: Single field update
     case UPDATE_DAY_WORKOUT_DESC: {
       const { date, workoutDesc } = action.payload;
       const dayLog = ensureDayLog(state, date);
       const updatedDay = { ...dayLog, workoutDescription: workoutDesc || "" };
       
-      return { 
-        ...state, 
-        dayLogs: { ...state.dayLogs, [date]: updatedDay } 
-      };
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: updatedDay } };
     }
 
     case "UPDATE_DAY_HYDRATION": {
       const { date, hydrationLitres } = action.payload;
-      const dayLogs = { ...state.dayLogs };
-      const existing = dayLogs[date] || ensureDayLog(state, date);
-
-      dayLogs[date] = {
-        ...existing,
-        hydrationLitres,
-      };
-
-      return { ...state, dayLogs };
+      const dayLog = ensureDayLog(state, date);
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: { ...dayLog, hydrationLitres } } };
     }
 
     case "UPDATE_DAY_NOTES": {
       const { date, notes } = action.payload;
-      const dayLogs = { ...state.dayLogs };
-      const existing = dayLogs[date] || ensureDayLog(state, date);
-
-      dayLogs[date] = {
-        ...existing,
-        notes,
-      };
-
-      return { ...state, dayLogs };
+      const dayLog = ensureDayLog(state, date);
+      return { ...state, dayLogs: { ...state.dayLogs, [date]: { ...dayLog, notes } } };
     }
 
     case "UPDATE_PROFILE": {
-      return {
-        ...state,
-        profile: {
-          ...state.profile,
-          ...(action.payload || {}),
-        },
-      };
+      return { ...state, profile: { ...state.profile, ...(action.payload || {}) } };
     }
 
     default:
       return state;
   }
 }
-// --------- CONTEXT SETUP ---------
 
+// --------- CONTEXT SETUP ---------
 const AppStateContext = createContext(null);
 
 export function AppStateProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState, loadFromStorage);
-
-  useEffect(() => {
-    saveToStorage(state);
-  }, [state]);
-
-  const value = { state, dispatch };
-
+  useEffect(() => { saveToStorage(state); }, [state]);
   return (
-    <AppStateContext.Provider value={value}>
+    <AppStateContext.Provider value={{ state, dispatch }}>
       {children}
     </AppStateContext.Provider>
   );
@@ -399,19 +244,13 @@ export function AppStateProvider({ children }) {
 
 export function useAppState() {
   const ctx = useContext(AppStateContext);
-  if (!ctx) {
-    throw new Error("useAppState must be used within an AppStateProvider");
-  }
+  if (!ctx) throw new Error("useAppState must be used within an AppStateProvider");
   return ctx;
 }
 
 export function useProfile() {
   const { state, dispatch } = useAppState();
   const profile = state.profile || DEFAULT_PROFILE;
-
-  const saveProfile = (patch) => {
-    dispatch({ type: "UPDATE_PROFILE", payload: patch });
-  };
-
+  const saveProfile = (patch) => { dispatch({ type: "UPDATE_PROFILE", payload: patch }); };
   return { profile, saveProfile };
 }

@@ -1,79 +1,81 @@
 // src/pages/Dashboard.jsx
 import React from "react";
+import { Link } from "react-router-dom";
 import { useAppState } from "../context/AppStateContext";
-import { Link } from "react-router-dom"; // Import Link for Quick actions
+import { 
+  computeDayMealTotals, 
+  computeTDEEForDay, 
+  calculateEffectiveWorkout
+} from "../utils/calculations";
+import { 
+  LayoutDashboard, 
+  TrendingUp, 
+  Droplet, 
+  Activity, 
+  ArrowRight, 
+  Plus,
+  History
+} from "lucide-react";
 
-// Using totalKcal with fallback to kcalPerUnitSnapshot
-function calcDayIntake(day) {
-  if (!day || !day.meals) return 0;
-  return day.meals.reduce(
-    (sum, m) => sum + (m.totalKcal ?? m.kcalPerUnitSnapshot ?? 0), 
-    0
-  );
-}
+// Import separate CSS
+import "../styles/Dashboard.css";
 
 export default function Dashboard() {
   const { state } = useAppState();
   const { profile, dayLogs } = state;
 
-  const dailyTarget = Number(profile.dailyKcalTarget) || 0;
-
-  const allDays = Object.values(dayLogs || {});
-
-  // Only count days where you actually did *something*
-  const effectiveDays = allDays.filter((day) => {
-    if (!day) return false;
-    const hasMeals = day.meals && day.meals.length > 0;
-    const hasWorkout = !!day.workoutKcal;
-    // Updated check to prioritize hydrationLitres
-    const hasHydration = !!day.hydrationLitres || !!day.hydrationMl; 
-    const hasNotes = !!day.notes;
-    const hasWeight = day.weightKg !== null && day.weightKg !== undefined;
-    return hasMeals || hasWorkout || hasHydration || hasNotes || hasWeight;
-  });
-
-  const daysCount = effectiveDays.length; // Not used in the new UI, but kept
-
-  // Today’s log
+  // --- 1. Today's Data ---
   const todayIso = new Date().toISOString().slice(0, 10);
-  const todayLog = dayLogs[todayIso] || {}; 
-  
-  // Derived values for the dashboard cards
-  const todayIntake = calcDayIntake(todayLog);
-  const todayWorkout = todayLog?.workoutKcal || 0;
-  const netKcal = dailyTarget > 0 
-    ? (dailyTarget + todayWorkout) - todayIntake 
-    : 0;
+  const todayLog = dayLogs[todayIso] || { date: todayIso };
+
+  // Computations
+  const todayTotals = computeDayMealTotals(todayLog);
+  const todayTDEE = computeTDEEForDay(todayLog, profile);
+  const todayWorkout = calculateEffectiveWorkout(todayLog);
   const todayHydration = todayLog.hydrationLitres ?? 0;
 
-  // Totals for effective days
+  // Deficit = (Limit + Burn) - Food
+  const todayLimit = todayTDEE + todayWorkout;
+  const todayDeficit = todayLimit - todayTotals.total;
+  
+  // Progress bar calc (capped at 100%)
+  const progressPercent = Math.min(100, (todayTotals.total / (todayLimit || 2000)) * 100);
+
+  // --- 2. All-Time & Streak Data ---
+  const allDays = Object.values(dayLogs || {});
+  
+  const effectiveDays = allDays.filter((day) => {
+    if (!day) return false;
+    const totals = computeDayMealTotals(day);
+    const workout = calculateEffectiveWorkout(day);
+    return totals.total > 0 || workout > 0 || !!day.hydrationLitres || day.weightKg != null;
+  });
+
+  // Aggregates
   let totalIntakeAllTime = 0;
-  let totalWorkoutAllTime = 0;
-  let totalTargetAllTime = 0;
+  let totalBurnAllTime = 0;
 
-  for (const day of effectiveDays) {
-    const intake = calcDayIntake(day); 
-    const workout = day.workoutKcal || 0;
+  effectiveDays.forEach(day => {
+    const totals = computeDayMealTotals(day);
+    const tdee = computeTDEEForDay(day, profile);
+    const workout = calculateEffectiveWorkout(day);
+    totalIntakeAllTime += totals.total;
+    totalBurnAllTime += (tdee + workout);
+  });
 
-    totalIntakeAllTime += intake;
-    totalWorkoutAllTime += workout;
-    totalTargetAllTime += dailyTarget;
-  }
+  const allTimeNetDeficit = totalBurnAllTime - totalIntakeAllTime;
 
-  const allTimeNetDeficit =
-    totalTargetAllTime + totalWorkoutAllTime - totalIntakeAllTime;
-
-  // Simple streak: how many *consecutive* days at or below target
-  const sortedDays = [...effectiveDays].sort((a, b) =>
-    a.date < b.date ? -1 : a.date > b.date ? 1 : 0
-  );
+  // Streak Logic
+  const sortedDays = [...effectiveDays].sort((a, b) => new Date(a.date) - new Date(b.date));
   let currentStreak = 0;
+  
+  // Iterate backwards from most recent entry
   for (let i = sortedDays.length - 1; i >= 0; i--) {
-    const day = sortedDays[i]; 
-    const intake = calcDayIntake(day);
-    const workout = day.workoutKcal || 0;
-    const dayDeficit = (dailyTarget + workout) - intake;
-    if (dayDeficit >= 0) {
+    const d = sortedDays[i];
+    const t = computeDayMealTotals(d).total;
+    const limit = computeTDEEForDay(d, profile) + calculateEffectiveWorkout(d);
+    
+    if ((limit - t) >= 0) {
       currentStreak += 1;
     } else {
       break;
@@ -81,85 +83,123 @@ export default function Dashboard() {
   }
 
   return (
-    <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">
-            Today’s summary, streaks and all-time stats for your journey.
-          </p>
-        </div>
+    <div className="dashboard-page">
+      
+      {/* Header */}
+      <div className="dashboard-header">
+        <h1 className="dashboard-title">
+          <LayoutDashboard size={32} className="text-blue" /> 
+          Dashboard
+        </h1>
+        <p className="dashboard-subtitle">
+          Today’s summary, streaks, and journey stats.
+        </p>
       </div>
 
-      <div className="card-grid card-grid-3 section-spacer">
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Today’s net</span>
-            <span className="card-meta">calories vs target</span>
+      {/* 1. HERO CARD: Today's Status */}
+      <section className="dash-hero-grid">
+        <div className="dash-card">
+          <div className="dc-header">
+            <span className="dc-title"><Activity size={18}/> Net Deficit (Today)</span>
+            {todayDeficit >= 0 ? (
+                <span className="text-green" style={{fontWeight:'700'}}>On Track</span>
+            ) : (
+                <span className="text-red" style={{fontWeight:'700'}}>Over Limit</span>
+            )}
           </div>
-          <div className="stat-value">
-            {/* Show + for surplus, or nothing if deficit/zero */}
-            {netKcal > 0 ? "+" : ""}
-            {Math.round(netKcal)} kcal
+          
+          <div className="hero-value-row">
+            <div className="dc-value">
+                {todayDeficit > 0 ? "+" : ""}
+                {Math.round(todayDeficit)}
+                <span style={{fontSize:'1.2rem', color:'#a0aec0', marginLeft:'5px'}}>kcal left</span>
+            </div>
           </div>
-          <div className="stat-label">
-            Intake {Math.round(todayIntake)} · Burn {Math.round(todayWorkout)} · Target{" "}
-            {dailyTarget}
+
+          {/* Simple visual progress bar */}
+          <div className="progress-bar-bg">
+            <div 
+                className="progress-bar-fill" 
+                style={{ 
+                    width: `${progressPercent}%`,
+                    background: todayDeficit >= 0 ? '#3182ce' : '#e53e3e'
+                }}
+            />
+          </div>
+
+          <div className="dc-footer" style={{marginTop:'1rem', display:'flex', justifyContent:'space-between'}}>
+            <span>Intake: <strong>{Math.round(todayTotals.total)}</strong></span>
+            <span>Limit (TDEE+Burn): <strong>{Math.round(todayLimit)}</strong></span>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. THE TRIO ROW: Hydration, Streak, All-Time */}
+      <section className="dash-grid-3">
+        
+        {/* Hydration */}
+        <div className="dash-card">
+          <div className="dc-header">
+            <span className="dc-title"><Droplet size={16}/> Hydration</span>
+          </div>
+          <div className="dc-value text-blue">
+            {todayHydration.toFixed(1)} <span style={{fontSize:'1rem', color:'#a0aec0'}}>L</span>
+          </div>
+          <div className="dc-footer">
+            Logged today
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Hydration</span>
+        {/* Streak */}
+        <div className="dash-card">
+          <div className="dc-header">
+            <span className="dc-title"><TrendingUp size={16}/> Streak</span>
           </div>
-          <div className="stat-value">
-            {todayHydration.toFixed(1)} L
+          <div className="dc-value text-orange">
+            {currentStreak} <span style={{fontSize:'1rem', color:'#a0aec0'}}>days</span>
           </div>
-          <div className="stat-label">Logged for this day</div>
+          <div className="dc-footer">
+            At or under limit
+          </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Streak</span>
+        {/* All Time Deficit */}
+        <div className="dash-card">
+          <div className="dc-header">
+            <span className="dc-title"><History size={16}/> All-Time Deficit</span>
           </div>
-          <div className="stat-value">{currentStreak} days</div>
-          <div className="stat-label">Days at or under target</div>
-        </div>
-      </div>
-
-      <div className="card-grid card-grid-2 section-spacer">
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">All-time net deficit</span>
-          </div>
-          <div className="stat-value">
-            {/* Show + for overall deficit, or nothing if surplus/zero */}
+          <div className="dc-value">
             {allTimeNetDeficit > 0 ? "+" : ""}
-            {Math.round(allTimeNetDeficit)} kcal
+            {Math.round(allTimeNetDeficit)}
           </div>
-          <div className="stat-label">
-            Roughly {(allTimeNetDeficit / 7700).toFixed(2)} kg worth of energy.
+          <div className="dc-footer">
+            Est. <strong className={allTimeNetDeficit >= 0 ? "text-green" : "text-red"}>
+                {(allTimeNetDeficit / 7700).toFixed(2)} kg
+            </strong> {allTimeNetDeficit >= 0 ? "lost" : "gained"}
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Quick actions</span>
-          </div>
-          <div className="btn-row">
-            <Link to="/day-log">
-              <button className="btn-primary">Go to Today’s Log</button>
-            </Link>
-            <Link to="/foods" style={{ marginLeft: '0.5rem' }}>
-              <button>Add New Food</button>
-            </Link>
-          </div>
-          <p className="muted" style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
-            Use the Day Log to add meals, water and notes. Use Foods to expand your
-            personal database.
-          </p>
+      </section>
+
+      {/* 3. ACTIONS ROW */}
+      <section className="dash-actions dash-card">
+        <div className="dc-header">
+            <span className="dc-title">Quick Actions</span>
         </div>
-      </div>
-    </>
+        <div className="dash-btn-row">
+            <Link to="/day-log" style={{textDecoration:'none'}}>
+              <button className="dash-btn dash-btn-primary">
+                Go to Today’s Log <ArrowRight size={18}/>
+              </button>
+            </Link>
+            <Link to="/foods" style={{textDecoration:'none'}}>
+              <button className="dash-btn dash-btn-secondary">
+                <Plus size={18}/> Add New Food
+              </button>
+            </Link>
+        </div>
+      </section>
+
+    </div>
   );
 }
