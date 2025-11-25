@@ -1,0 +1,112 @@
+/* src/components/Sidebar.css */
+
+.sidebar-compact {
+  position: fixed;
+  left: 12px;
+  top: 80px; /* below logo/top */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1001;
+}
+
+.hamburger-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.compact-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* overlay (dim) */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 1000;
+  transition: background-color 160ms ease;
+}
+.sidebar-overlay.show {
+  display: block;
+  background: rgba(0,0,0,0.25);
+}
+
+/* panel */
+.sidebar-panel {
+  width: 320px;
+  max-width: calc(100% - 40px);
+  height: 100%;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 6px 30px rgba(0,0,0,0.15);
+  transform: translateX(-120%);
+  transition: transform 220ms ease;
+  padding: 16px;
+}
+.sidebar-panel.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+}
+.logo, .mini-logo {
+  font-weight:700;
+  font-size:18px;
+  cursor:pointer;
+}
+.close-btn {
+  background:transparent;
+  border:none;
+  font-size:18px;
+  cursor:pointer;
+}
+
+.sidebar-nav {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.nav-link {
+  padding:10px 12px;
+  border-radius:8px;
+  text-decoration:none;
+  color:var(--text-color, #111);
+}
+.nav-link.active {
+  background: rgba(0,0,0,0.06);
+}
+
+/* main dim when sidebar open */
+.main-area.dimmed {
+  filter: blur(0.2px); /* subtle */
+  pointer-events: none; /* avoid clicks while sidebar open */
+}
+
+/* small screens: position compact at bottom-left */
+@media (max-width: 640px) {
+  .sidebar-compact {
+    left: 10px;
+    top: auto;
+    bottom: 16px;
+    flex-direction: row;
+    gap: 10px;
+  }
+  .compact-btn { width:44px; height:44px; border-radius:50%; }
+  .hamburger-btn { display:block; }
+}

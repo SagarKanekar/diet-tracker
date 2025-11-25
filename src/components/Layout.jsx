@@ -1,74 +1,62 @@
-import { NavLink, Outlet } from "react-router-dom";
+// src/components/Layout.jsx
+import React, { useState } from "react";
+import { Outlet, NavLink } from "react-router-dom";
+import Sidebar from "./Sidebar";
+import "../App.css"
+// You may need to update this path if your global styles aren't in App.css
+// import "./App.css"; 
 
 export default function Layout() {
+  // 1. State to manage the sidebar open/closed status
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // The navigation links were extracted from your original <nav>
+  const navLinks = [
+    { to: "/", label: "Dashboard", end: true },
+    { to: "/day-log", label: "Day Log" },
+    { to: "/foods", label: "Foods" },
+    { to: "/trends", label: "Trends" },
+    { to: "/settings", label: "Settings" },
+  ];
+
+  // 2. Function to toggle sidebar (can be passed to a menu icon)
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
+
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div className="app-title">
-          Diet<span>Tracker</span>
-        </div>
-        <div className="muted">Chat × Sagar · v1</div>
-      </header>
+    <div className="app-root">
+      {/* 3. Integrate the new Sidebar component */}
+      <Sidebar 
+        open={sidebarOpen} 
+        setOpen={setSidebarOpen} 
+        compact={true} // or false, depending on the desired behavior
+        navLinks={navLinks} // Passing the links to the Sidebar
+      />
 
-      <div className="app-body">
-        <nav className="app-nav">
-          <h2>Navigation</h2>
-          <ul className="nav-list">
-            <li>
-              <NavLink
-                to="/"
-                end
-                className={({ isActive }) =>
-                  "nav-link " + (isActive ? "nav-link-active" : "")
-                }
-              >
-                Dashboard
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/day-log"
-                className={({ isActive }) =>
-                  "nav-link " + (isActive ? "nav-link-active" : "")
-                }
-              >
-                Day Log
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/foods"
-                className={({ isActive }) =>
-                  "nav-link " + (isActive ? "nav-link-active" : "")
-                }
-              >
-                Foods
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/trends"
-                className={({ isActive }) =>
-                  "nav-link " + (isActive ? "nav-link-active" : "")
-                }
-              >
-                Trends
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  "nav-link " + (isActive ? "nav-link-active" : "")
-                }
-              >
-                Settings
-              </NavLink>
-            </li>
-          </ul>
-        </nav>
+      {/* 4. The main content area, with conditional "dimmed" class */}
+      <div className={`main-area ${sidebarOpen ? "dimmed" : ""}`}>
+        
+        {/* Replacing the old app-header with the new topbar pattern */}
+        <header className="topbar">
+          <div className="topbar-left">
+            {/* Menu button to open/close sidebar */}
+            <button className="menu-toggle-btn" onClick={toggleSidebar}>
+                ☰
+            </button>
+            {/* Small logo/title that routes to the home page */}
+            <div className="mini-logo" onClick={() => window.location.assign("/")}>
+                Diet<span>Tracker</span>
+            </div>
+          </div>
+          <div className="topbar-right">
+            {/* any top controls / user info */}
+            <div className="muted">Chat × Sagar · v1</div>
+          </div>
+        </header>
 
-        <main className="app-main">
+        {/* The main content area where pages are rendered */}
+        <main className="content">
           <div className="page">
             <Outlet />
           </div>
