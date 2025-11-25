@@ -84,8 +84,6 @@ function ensureDayLog(state, date) {
 
 // --------- REDUCER ---------
 
-// --------- REDUCER ---------
-
 function appReducer(state, action) {
   switch (action.type) {
     case "SET_SELECTED_DATE": {

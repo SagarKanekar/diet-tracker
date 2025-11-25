@@ -115,13 +115,16 @@ export default function Foods() {
       unitLabel: "serving",
       kcalPerUnit: "",
       isFavourite: false,
+      // Resetting to home is fine, or you could keep the last selected category
     });
   };
   
+  // ✅ UPDATED: Added "Packaged" to the configuration array
   const FOOD_CATEGORIES = [
     { key: "all", label: "All" },
     { key: "home", label: "Home" },
     { key: "street", label: "Street" },
+    { key: "packaged", label: "Packaged" }, // Added here
     { key: "cheat", label: "Cheat" },
     { key: "drinks", label: "Drinks" },
   ];
@@ -137,7 +140,7 @@ export default function Foods() {
           </p>
         </div>
         <div className="muted">
-          Total items: **{allFoods.length}** ({filteredFoods.length} shown)
+          Total items: <strong>{allFoods.length}</strong> ({filteredFoods.length} shown)
         </div>
       </div>
 
@@ -176,6 +179,7 @@ export default function Foods() {
                   }
                   className="input-full"
                 >
+                  {/* Logic automatically picks up 'Packaged' from the array */}
                   {FOOD_CATEGORIES.filter(c => c.key !== 'all').map(c => (
                     <option key={c.key} value={c.key}>{c.label}</option>
                   ))}
@@ -256,6 +260,7 @@ export default function Foods() {
             className="input-search"
           />
           <div className="btn-group">
+            {/* Logic automatically creates the 'Packaged' button */}
             {FOOD_CATEGORIES.map((btn) => (
               <button
                 key={btn.key}
