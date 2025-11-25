@@ -9,11 +9,17 @@ import React, {
 // --- NEW: Central definition of meal types (Breakfast removed) ---
 export const MEAL_TYPES = ["lunch", "dinner", "extras"];
 
+// --- ACTION TYPES ---
+export const UPDATE_DAY_WORKOUT = "UPDATE_DAY_WORKOUT";
+export const UPDATE_DAY_INTENSITY = "UPDATE_DAY_INTENSITY";
+export const UPDATE_DAY_WORKOUT_DESC = "UPDATE_DAY_WORKOUT_DESC";
+
 const DEFAULT_PROFILE = {
   name: "",
   heightCm: "",
   weightKg: "",
   sex: "male", // or "female"/"other"
+  bmr: "", 
   dailyKcalTarget: 2200,
   defaultActivityPreset: "sedentary", // "sedentary" | "college" | "custom"
   defaultActivityFactor: 1.2,
@@ -272,7 +278,7 @@ function appReducer(state, action) {
       };
     }
 
-    // ✅ NEW: Dedicated action for Workout updates
+    // ✅ Set all workout fields at once
     case "SET_WORKOUT": {
       const { date, workoutCalories, intensityFactor, workoutDescription } = action.payload;
       const dayLog = ensureDayLog(state, date);
@@ -280,7 +286,6 @@ function appReducer(state, action) {
       const updatedDay = {
         ...dayLog,
         workoutCalories: Number(workoutCalories) || 0,
-        // If intensityFactor is explicitly null or empty string, store null
         intensityFactor: (intensityFactor === "" || intensityFactor === null) 
           ? null 
           : Number(intensityFactor),
@@ -293,6 +298,42 @@ function appReducer(state, action) {
           ...state.dayLogs,
           [date]: updatedDay,
         },
+      };
+    }
+
+    // ✅ Granular Update: Workout Calories only
+    case UPDATE_DAY_WORKOUT: {
+      const { date, workoutKcal } = action.payload;
+      const dayLog = ensureDayLog(state, date);
+      const updatedDay = { ...dayLog, workoutCalories: Number(workoutKcal) || 0 };
+      
+      return { 
+        ...state, 
+        dayLogs: { ...state.dayLogs, [date]: updatedDay } 
+      };
+    }
+
+    // ✅ Granular Update: Intensity Factor only
+    case UPDATE_DAY_INTENSITY: {
+      const { date, intensityFactor } = action.payload;
+      const dayLog = ensureDayLog(state, date);
+      const updatedDay = { ...dayLog, intensityFactor: intensityFactor === "" ? null : Number(intensityFactor) };
+      
+      return { 
+        ...state, 
+        dayLogs: { ...state.dayLogs, [date]: updatedDay } 
+      };
+    }
+
+    // ✅ Granular Update: Workout Description only
+    case UPDATE_DAY_WORKOUT_DESC: {
+      const { date, workoutDesc } = action.payload;
+      const dayLog = ensureDayLog(state, date);
+      const updatedDay = { ...dayLog, workoutDescription: workoutDesc || "" };
+      
+      return { 
+        ...state, 
+        dayLogs: { ...state.dayLogs, [date]: updatedDay } 
       };
     }
 

@@ -1,0 +1,381 @@
+/* src/styles/DayLog.css */
+
+/* --- Page Layout --- */
+.daylog-page {
+  padding: 1.5rem;
+  max-width: 1000px; /* Slightly tighter width for focus */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  font-family: inherit;
+}
+
+/* --- Header --- */
+.daylog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Subtle divider */
+}
+
+.daylog-title h1 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffffff; /* White text for the main page title on dark bg */
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.daylog-subtitle {
+  color: #a0aec0;
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+}
+
+/* --- Date Picker Input --- */
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.date-input-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.styled-date-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  font-family: inherit;
+  color: #1a202c;
+  background: #fff; /* Force white background */
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+/* --- GLOBAL INPUT FIX FOR DAYLOG --- */
+/* This forces all inputs inside white cards to look correct */
+.daylog-page input,
+.daylog-page select,
+.daylog-page textarea {
+  background-color: #ffffff !important; /* Force White background */
+  color: #2d3748 !important;            /* Force Dark Grey text */
+  border: 1px solid #cbd5e0 !important; /* Light Grey border */
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.daylog-page input:focus,
+.daylog-page select:focus,
+.daylog-page textarea:focus {
+  border-color: #3182ce !important;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15) !important;
+}
+
+/* Fix placeholder color */
+.daylog-page input::placeholder,
+.daylog-page textarea::placeholder {
+  color: #a0aec0 !important;
+}
+
+/* --- Summary Cards (Top Row) --- */
+.summary-grid {
+  display: grid;
+  /* Force exactly 3 columns side-by-side */
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 1rem;
+}
+
+.summary-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem; /* Reduced padding */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.sc-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: #718096;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sc-value {
+  font-size: 1.8rem; /* Slightly smaller for compactness */
+  font-weight: 800;
+  color: #1a202c;
+  line-height: 1.1;
+  margin-bottom: 0.25rem;
+}
+
+.sc-footer {
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.text-green { color: #38a169; }
+.text-blue { color: #3182ce; }
+.text-orange { color: #dd6b20; }
+
+/* --- Meta Grid (Inputs) --- */
+.meta-grid {
+  display: grid;
+  /* Force exactly 3 columns so Activity, Weight, Water sit side-by-side */
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 1rem;
+}
+
+.meta-card {
+  background: #ffffff;
+  padding: 1rem; /* Compact padding */
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  justify-content: center; /* Vertically align content */
+}
+
+.workout-card {
+  grid-column: 1 / -1; /* Span across all 3 columns */
+  border-left: 5px solid #dd6b20; 
+  padding: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .summary-grid, .meta-grid {
+    grid-template-columns: 1fr 1fr; /* 2 columns on tablets */
+  }
+  /* On tablet, make water span full width or workout span full */
+  .workout-card { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+  .summary-grid, .meta-grid {
+    grid-template-columns: 1fr; /* Stack vertically on phones */
+  }
+}
+
+.meta-label {
+  font-weight: 700;
+  color: #4a5568;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.form-row-responsive {
+  display: flex;
+  gap: 1rem;
+}
+@media (max-width: 500px) {
+  .form-row-responsive { flex-direction: column; gap: 0.5rem; }
+}
+
+.input-full {
+  width: 100%;
+  display: block;
+}
+
+.muted {
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+/* --- Notes --- */
+.notes-textarea {
+  width: 100%;
+  min-height: 80px;
+  border-radius: 12px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* --- Meal Sections --- */
+.meal-section {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1rem;
+}
+
+.meal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.meal-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.meal-kcal-badge {
+  background: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  padding: 0.3rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Quick Add Chips */
+.quick-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.quick-add-label {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  font-weight: 700;
+  margin-right: 0.25rem;
+  text-transform: uppercase;
+}
+
+.chip-btn {
+  background: #ebf8ff;
+  color: #2b6cb0;
+  border: 1px solid #bee3f8;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.chip-btn:hover {
+  background: #3182ce;
+  color: white;
+  border-color: #3182ce;
+  transform: translateY(-1px);
+}
+
+/* Table */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.meal-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.meal-table th {
+  text-align: left;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 2px solid #edf2f7;
+}
+
+.meal-table td {
+  padding: 1rem 0.5rem;
+  vertical-align: middle;
+  color: #2d3748;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.meal-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Input overrides specifically for the table small inputs */
+.input-small {
+  width: 70px;
+  padding: 0.3rem !important;
+  text-align: center;
+}
+
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+/* Buttons inside table */
+.btn-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-primary, .btn-secondary, .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-small {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.btn-primary { background: #3182ce; color: white; padding: 0.6rem 1rem; }
+.btn-primary:hover { background: #2b6cb0; }
+
+.btn-secondary { background: #edf2f7; color: #4a5568; }
+.btn-secondary:hover { background: #cbd5e0; }
+
+.btn-danger { background: #fed7d7; color: #c53030; }
+.btn-danger:hover { background: #feb2b2; }
+
+/* Add Form Container */
+.add-meal-container {
+  margin-top: 1rem;
+  background: #f7fafc;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #edf2f7;
+}
+
+.form-row-compact {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}

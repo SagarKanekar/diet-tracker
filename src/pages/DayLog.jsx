@@ -1,130 +1,105 @@
 // src/pages/DayLog.jsx
 import React, { useMemo, useState, useEffect } from "react";
-import { useLocation } from "react-router-dom"; // ✅ Added to read query params
-import { useAppState, effectiveWorkoutKcal } from "../context/AppStateContext";
+import { useLocation } from "react-router-dom";
+import { 
+  useAppState, 
+  effectiveWorkoutKcal,
+  UPDATE_DAY_WORKOUT,
+  UPDATE_DAY_INTENSITY,
+  UPDATE_DAY_WORKOUT_DESC 
+} from "../context/AppStateContext";
 import FoodAutocomplete from "../components/FoodAutocomplete";
 
+// Icons for UI Polish
+import { 
+  Calendar, Activity, Droplet, Scale, 
+  Utensils, Moon, Coffee, Plus, Save, X 
+} from "lucide-react";
+
+// Import separate CSS
+import "../styles/DayLog.css"; 
+
 const MEAL_TYPES = [
-  { id: "lunch", label: "Lunch" },
-  { id: "dinner", label: "Dinner" },
-  { id: "extra", label: "Extras / Snacks" },
+  { id: "lunch", label: "Lunch", icon: <Utensils size={18} /> },
+  { id: "dinner", label: "Dinner", icon: <Moon size={18} /> },
+  { id: "extra", label: "Extras / Snacks", icon: <Coffee size={18} /> },
 ];
 
+// --- Helpers ---
 function generateId(prefix) {
-  if (window.crypto?.randomUUID) {
-    return `${prefix}-${window.crypto.randomUUID()}`;
-  }
+  if (window.crypto?.randomUUID) return `${prefix}-${window.crypto.randomUUID()}`;
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-// ✅ Helper to normalize query date string
 const isValidDateString = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
-// --- NEW: Workout Box Component ---
+// --- Sub-Component: Workout Box ---
 function WorkoutBox({ day, dispatch }) {
-  // Local state to manage inputs before saving
-  const [calories, setCalories] = useState(day?.workoutCalories ?? "");
-  const [intensity, setIntensity] = useState(day?.intensityFactor ?? "");
-  const [desc, setDesc] = useState(day?.workoutDescription ?? "");
+  const [localKcal, setLocalKcal] = useState(day?.workoutCalories ?? "");
+  const [localDesc, setLocalDesc] = useState(day?.workoutDescription ?? "");
 
-  // Sync local state when the selected day changes in the parent
   useEffect(() => {
-    setCalories(day?.workoutCalories ?? "");
-    setIntensity(day?.intensityFactor ?? "");
-    setDesc(day?.workoutDescription ?? "");
-  }, [day?.date, day?.workoutCalories, day?.intensityFactor, day?.workoutDescription]);
+    setLocalKcal(day?.workoutCalories ?? "");
+    setLocalDesc(day?.workoutDescription ?? "");
+  }, [day?.date, day?.workoutCalories, day?.workoutDescription]);
 
-  function saveWorkout(e) {
-    e.preventDefault();
-    const payload = {
-      date: day.date,
-      workoutCalories: calories ? Number(calories) : 0,
-      intensityFactor: intensity === "" ? null : Number(intensity),
-      workoutDescription: desc || ""
-    };
-    dispatch({ type: "SET_WORKOUT", payload });
-  }
-
-  function clearWorkout() {
-    setCalories("");
-    setIntensity("");
-    setDesc("");
-    dispatch({ 
-      type: "SET_WORKOUT", 
-      payload: { 
-        date: day.date, 
-        workoutCalories: 0, 
-        intensityFactor: null, 
-        workoutDescription: "" 
-      }
-    });
-  }
+  const handleKcalBlur = () => dispatch({ type: UPDATE_DAY_WORKOUT, payload: { date: day.date, workoutKcal: localKcal } });
+  const handleDescBlur = () => dispatch({ type: UPDATE_DAY_WORKOUT_DESC, payload: { date: day.date, workoutDesc: localDesc } });
+  const handleIntensityChange = (e) => dispatch({ type: UPDATE_DAY_INTENSITY, payload: { date: day.date, intensityFactor: e.target.value } });
 
   return (
-    <div className="card form-card">
-      <div className="card-header">Workout Details</div>
-      <form onSubmit={saveWorkout}>
-        <div className="form-group">
-          <label>Calories (kcal)</label>
+    <div className="meta-card workout-card">
+      <label className="meta-label text-orange">
+        <Activity size={18} /> Workout <small className="muted" style={{ fontWeight: 400, marginLeft: 'auto' }}>(Auto-saved)</small>
+      </label>
+      
+      <div className="form-row-responsive" style={{ gap: '1rem', marginBottom: '1rem' }}>
+        <div style={{ flex: 1 }}>
+          <small className="muted">Burn (kcal)</small>
           <input 
-            type="number" 
-            min="0" 
-            className="input-full"
-            value={calories} 
-            onChange={e => setCalories(e.target.value)} 
-            placeholder="0" 
+            type="number" min="0" className="input-full" placeholder="0" 
+            value={localKcal}
+            onChange={(e) => setLocalKcal(e.target.value)}
+            onBlur={handleKcalBlur}
           />
         </div>
-        
-        <div className="form-group">
-          <label>Intensity (IF)</label>
-          <input 
-            type="number" 
-            step="0.05" 
-            min="0.5" 
-            max="2.0" 
-            className="input-full"
-            value={intensity} 
-            onChange={e => setIntensity(e.target.value)} 
-            placeholder="e.g. 1.0" 
-          />
-          <small className="muted" style={{display:'block', marginTop:'0.25rem'}}>
-            Multiplier (default 1.0)
-          </small>
+        <div style={{ flex: 1 }}>
+          <small className="muted">Intensity</small>
+          <select className="input-full" value={day?.intensityFactor ?? ""} onChange={handleIntensityChange}>
+            <option value="">— None —</option>
+            <option value="0.5">0.5 — Light Recovery</option>
+            <option value="0.8">0.8 — Light Effort</option>
+            <option value="1.0">1.0 — Moderate</option>
+            <option value="1.2">1.2 — Hard Training</option>
+            <option value="1.5">1.5 — Intense Athlete</option>
+          </select>
         </div>
+      </div>
 
-        <div className="form-group">
-          <label>Description</label>
+      {(Number(localKcal) > 0 || localDesc) && (
+        <div>
+          <small className="muted">Note</small>
           <input 
-            type="text" 
-            maxLength="60" 
-            className="input-full"
-            value={desc} 
-            onChange={e => setDesc(e.target.value)} 
-            placeholder="e.g. Chest day, Cardio"
+            type="text" maxLength="60" className="input-full" placeholder="e.g. Chest Day, 5k Run"
+            value={localDesc}
+            onChange={(e) => setLocalDesc(e.target.value)}
+            onBlur={handleDescBlur}
           />
         </div>
-
-        <div className="btn-row">
-          <button type="submit" className="btn-primary btn-small">Save</button>
-          <button type="button" onClick={clearWorkout} className="btn-secondary btn-small">Clear</button>
-        </div>
-      </form>
+      )}
     </div>
   );
 }
 
-// --- MAIN COMPONENT ---
-
+// --- Main Component ---
 export default function DayLog() {
   const { state, dispatch } = useAppState();
-  const location = useLocation(); // ✅ Hook to access URL params
+  const location = useLocation();
 
-  // ✅ EFFECT: Read ?date=YYYY-MM-DD from URL on mount/update
+  // URL Date Sync
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const queryDate = params.get("date"); // e.g. "2025-11-25"
-
+    const queryDate = params.get("date");
     if (queryDate && isValidDateString(queryDate)) {
       dispatch({ type: "SET_SELECTED_DATE", payload: queryDate });
     }
@@ -133,38 +108,28 @@ export default function DayLog() {
   const selectedDate = state.selectedDate;
   const dailyTarget = state.profile.dailyKcalTarget || 0; 
 
-  // Per-meal form state
+  // Form States
   const [newMealFoodSearch, setNewMealFoodSearch] = useState({ lunch: "", dinner: "", extra: "" });
   const [newMealFoodId, setNewMealFoodId] = useState({ lunch: null, dinner: null, extra: null });
   const [newQuantity, setNewQuantity] = useState({ lunch: "1", dinner: "1", extra: "1" });
-
-  // Inline edit state
   const [editingMealId, setEditingMealId] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState("");
 
   const allFoods = state.foodItems || [];
   const favouriteFoods = allFoods.filter((f) => f.isFavourite);
 
-  // --- Meal Actions ---
-
+  // --- Handlers ---
   const addMealEntry = (mealType, food, qty) => {
     const quantityNumber = Number(qty);
     if (!food || !quantityNumber || quantityNumber <= 0) return;
-
-    const totalKcal = Math.round(quantityNumber * food.kcalPerUnit);
-
     dispatch({
       type: "ADD_MEAL_ENTRY",
       payload: {
-        id: window.crypto?.randomUUID ? window.crypto.randomUUID() : generateId("meal"),
-        date: selectedDate,
-        mealType,
-        foodItemId: food.id,
-        foodNameSnapshot: food.name,
-        unitLabelSnapshot: food.unitLabel,
-        kcalPerUnitSnapshot: food.kcalPerUnit,
-        quantity: quantityNumber,
-        totalKcal,
+        id: generateId("meal"),
+        date: selectedDate, mealType, foodItemId: food.id,
+        foodNameSnapshot: food.name, unitLabelSnapshot: food.unitLabel,
+        kcalPerUnitSnapshot: food.kcalPerUnit, quantity: quantityNumber,
+        totalKcal: Math.round(quantityNumber * food.kcalPerUnit),
       },
     });
   };
@@ -172,7 +137,6 @@ export default function DayLog() {
   const handleQuickAddFavourite = (mealType, food) => {
     setNewMealFoodSearch((prev) => ({ ...prev, [mealType]: food.name }));
     setNewMealFoodId((prev) => ({ ...prev, [mealType]: food.id }));
-    setNewQuantity((prev) => ({ ...prev, [mealType]: "1" }));
     addMealEntry(mealType, food, 1);
   };
 
@@ -180,480 +144,253 @@ export default function DayLog() {
     e.preventDefault();
     const quantity = parseFloat(newQuantity[mealType] || "0");
     const foodId = newMealFoodId[mealType];
-
-    if (!foodId) {
-      alert("Pick a food from your Foods database first.");
-      return;
-    }
     const food = allFoods.find((f) => f.id === foodId);
-    if (!food) {
-      alert("Selected food not found. Try again.");
-      return;
-    }
-    if (quantity <= 0) {
-      alert("Quantity must be greater than zero.");
-      return;
-    }
-
+    if (!food || quantity <= 0) return alert("Please select a valid food and quantity.");
+    
     addMealEntry(mealType, food, quantity);
-
     setNewMealFoodSearch((prev) => ({ ...prev, [mealType]: "" }));
     setNewMealFoodId((prev) => ({ ...prev, [mealType]: null }));
     setNewQuantity((prev) => ({ ...prev, [mealType]: "1" }));
   };
 
-  const startEditMeal = (meal) => {
-    setEditingMealId(meal.id);
-    setEditingQuantity(String(meal.quantity ?? 1));
-  };
-
-  const cancelEditMeal = () => {
-    setEditingMealId(null);
-    setEditingQuantity("");
-  };
-
   const handleSaveEditMeal = (meal) => {
     const qty = parseFloat(editingQuantity);
-    if (!qty || qty <= 0) {
-      alert("Quantity must be greater than zero.");
-      return;
-    }
-    dispatch({
-      type: "UPDATE_MEAL_ENTRY",
-      payload: { date: selectedDate, mealId: meal.id, quantity: qty },
-    });
-    cancelEditMeal();
-  };
-
-  const handleDeleteMeal = (mealId) => {
-    dispatch({ type: "DELETE_MEAL_ENTRY", payload: { date: selectedDate, mealId } });
-    if (editingMealId === mealId) cancelEditMeal();
+    if (!qty || qty <= 0) return alert("Quantity must be > 0");
+    dispatch({ type: "UPDATE_MEAL_ENTRY", payload: { date: selectedDate, mealId: meal.id, quantity: qty } });
+    setEditingMealId(null); setEditingQuantity("");
   };
 
   // --- Derived Data ---
+  const dayLog = useMemo(() => state.dayLogs[selectedDate] || {
+    date: selectedDate, activityFactor: state.profile.defaultActivityFactor ?? 1.2,
+    hydrationLitres: 0, weightKg: null, notes: "", meals: [],
+    workoutCalories: 0, intensityFactor: null, workoutDescription: ""
+  }, [state.dayLogs, selectedDate, state.profile]);
 
-  const dayLog = useMemo(() => {
-    return (
-      state.dayLogs[selectedDate] || {
-        date: selectedDate,
-        activityFactor: state.profile.defaultActivityFactor ?? 1.2,
-        hydrationLitres: 0,
-        weightKg: null,
-        notes: "",
-        meals: [],
-        workoutCalories: 0,
-        intensityFactor: null,
-        workoutDescription: ""
-      }
-    );
-  }, [state.dayLogs, selectedDate, state.profile.defaultActivityFactor]);
-
-  const hydrationLitres = dayLog.hydrationLitres ?? 0;
-  const notes = dayLog.notes ?? "";
-  const activityFactor = dayLog.activityFactor ?? 1.2;
-  
-  // ✅ Calculate Effective Workout Calories (Base * IF)
   const effectiveWorkout = effectiveWorkoutKcal(dayLog);
-
+  
   const mealsByType = useMemo(() => {
-    const grouped = {};
-    MEAL_TYPES.forEach(type => grouped[type.id] = []);
-    (dayLog.meals || []).forEach((m) => {
-      const key = MEAL_TYPES.some(t => t.id === m.mealType) ? m.mealType : 'extra'; 
+    const grouped = {}; 
+    MEAL_TYPES.forEach(t => grouped[t.id] = []);
+    (dayLog.meals || []).forEach(m => {
+      const key = MEAL_TYPES.some(t => t.id === m.mealType) ? m.mealType : 'extra';
       grouped[key].push(m);
     });
     return grouped;
   }, [dayLog.meals]);
 
-  const totalIntakeKcal = (dayLog.meals || []).reduce(
-    (sum, m) => sum + (m.totalKcal ?? m.kcalPerUnitSnapshot ?? 0),
-    0
-  );
+  const totalIntakeKcal = (dayLog.meals || []).reduce((sum, m) => sum + (m.totalKcal ?? 0), 0);
+  const netDayKcal = dailyTarget > 0 ? (dailyTarget * (dayLog.activityFactor ?? 1.2)) + effectiveWorkout - totalIntakeKcal : 0;
 
-  // ✅ Net Day Kcal = (Target + Workout) - Intake
-  const netDayKcal = dailyTarget > 0 
-    ? (dailyTarget * activityFactor) + effectiveWorkout - totalIntakeKcal 
-    : 0;
-
-  // --- Other Handlers ---
-
-  const handleDateChange = (e) => {
-    const newDate = e.target.value;
-    if (!newDate) return;
-    dispatch({ type: "SET_SELECTED_DATE", payload: newDate });
-  };
-
-  const handleMetaChange = (patch) => {
-    dispatch({
-      type: "UPDATE_DAY_META",
-      payload: { date: selectedDate, patch },
-    });
-  };
-
-  const handleHydrationChange = (e) => {
-    dispatch({
-      type: "UPDATE_DAY_HYDRATION",
-      payload: {
-        date: selectedDate,
-        hydrationLitres: Number(e.target.value) || 0,
-      },
-    });
-  };
-
-  const handleNotesChange = (e) => {
-    dispatch({
-      type: "UPDATE_DAY_NOTES",
-      payload: { date: selectedDate, notes: e.target.value },
-    });
-  };
+  // --- Meta Handlers ---
+  const updateMeta = (patch) => dispatch({ type: "UPDATE_DAY_META", payload: { date: selectedDate, patch } });
 
   return (
-    <>
-      {/* 1. Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Day Log</h1>
-          <p className="page-subtitle">
-            Log meals, hydration, and exercise for the selected day.
-          </p>
+    <div className="daylog-page">
+      
+      {/* 1. Header */}
+      <div className="daylog-header">
+        <div className="daylog-title">
+          <h1><Calendar size={28} className="text-blue" /> Day Log</h1>
+          <p className="daylog-subtitle">Track your nutrition and progress.</p>
         </div>
-        <div className="form-group form-group-inline">
-          <label>
-            <strong>Date:</strong>{" "}
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={handleDateChange}
-              className="input-date"
-            />
-          </label>
+        <div className="date-input-group">
+          <label>Selected Date</label>
+          <input 
+            type="date" 
+            value={selectedDate} 
+            onChange={(e) => e.target.value && dispatch({ type: "SET_SELECTED_DATE", payload: e.target.value })} 
+            className="styled-date-input"
+          />
         </div>
       </div>
 
-      <hr />
-
-      {/* 2. Daily Summary Cards */}
-      <div className="card-grid card-grid-3 section-spacer">
-        
-        {/* Card 1: Intake & Target */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Calories</span>
-            <span className="card-meta">Intake vs. Net Target</span>
+      {/* 2. Hero Stats Cards */}
+      <div className="summary-grid">
+        {/* Calories */}
+        <div className="summary-card">
+          <div>
+            <div className="sc-header"><Activity size={16}/> Calories</div>
+            <div className="sc-value">{Math.round(totalIntakeKcal)} <span style={{fontSize:'1rem', color:'#a0aec0'}}>kcal</span></div>
           </div>
-          <div className="stat-value">
-            {Math.round(totalIntakeKcal)} kcal
-          </div>
-          <div className="stat-label">
-            Target Net: {netDayKcal > 0 ? "+" : ""}
-            {Math.round(netDayKcal)} kcal
+          <div className="sc-footer">
+            Target Net: <strong className={netDayKcal >= 0 ? "text-green" : "text-orange"}>
+              {netDayKcal > 0 ? "+" : ""}{Math.round(netDayKcal)}
+            </strong>
           </div>
         </div>
 
-        {/* Card 2: Hydration & Notes */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Hydration & Notes</span>
+        {/* Hydration */}
+        <div className="summary-card">
+          <div>
+            <div className="sc-header"><Droplet size={16}/> Hydration</div>
+            <div className="sc-value text-blue">{dayLog.hydrationLitres?.toFixed(1)} <span style={{fontSize:'1rem', color:'#a0aec0'}}>L</span></div>
           </div>
-          <div className="stat-value">
-            {hydrationLitres.toFixed(1)} L
-          </div>
-          <div className="stat-label">
-            Notes: {notes ? "Logged" : "None"}
+          <div className="sc-footer">
+            {dayLog.hydrationLitres >= 3 ? "Great job! 💧" : "Keep drinking water."}
           </div>
         </div>
-        
-        {/* Card 3: Physical Stats (Weight & Workout) */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Physical Stats</span>
+
+        {/* Physical */}
+        <div className="summary-card">
+          <div>
+            <div className="sc-header"><Scale size={16}/> Weight</div>
+            <div className="sc-value">{dayLog.weightKg ? dayLog.weightKg : "--"} <span style={{fontSize:'1rem', color:'#a0aec0'}}>kg</span></div>
           </div>
-          <div className="stat-value">
-            {dayLog.weightKg ? `${dayLog.weightKg.toFixed(1)} kg` : "—"}
-          </div>
-          <div className="stat-label">
-            {/* Show Effective Workout Kcal here */}
-            Workout: {effectiveWorkout} kcal
+          <div className="sc-footer">
+            Workout Burn: <strong>{effectiveWorkout} kcal</strong>
           </div>
         </div>
       </div>
 
-      <hr />
-
-      {/* 3. Day Meta Section (Inputs) */}
-      <section className="section-spacer">
-        <h2 className="section-title">Day Details (Inputs)</h2>
-        <div className="card-grid card-grid-4">
-          
-          {/* Activity Factor */}
-          <div className="card form-card">
-            <div className="card-header">Activity Factor</div>
-            <label className="form-group">
-              <input
-                type="number"
-                step="0.1"
-                min="1.0"
-                value={activityFactor}
-                onChange={(e) =>
-                  handleMetaChange({
-                    activityFactor: Number(e.target.value) || 1.2,
-                  })
-                }
-                className="input-full"
-              />
-              <small className="muted">Default: {state.profile.defaultActivityFactor}</small>
-            </label>
-          </div>
-
-          {/* ✅ NEW: Workout Box (Replaces old simple input) */}
-          <WorkoutBox day={dayLog} dispatch={dispatch} />
-
-          {/* Weight */}
-          <div className="card form-card">
-            <div className="card-header">Weight (kg)</div>
-            <label className="form-group">
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                value={dayLog.weightKg ?? ""}
-                onChange={(e) =>
-                  handleMetaChange({
-                    weightKg: e.target.value ? Number(e.target.value) : null,
-                  })
-                }
-                className="input-full"
-              />
-            </label>
-          </div>
-
-          {/* Hydration */}
-          <div className="card form-card">
-            <div className="card-header">Water (Litres)</div>
-            <label className="form-group">
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                value={hydrationLitres}
-                onChange={handleHydrationChange}
-                className="input-full"
-              />
-            </label>
-          </div>
-          
+      {/* 3. Meta & Inputs Section */}
+      <section className="meta-grid">
+        <div className="meta-card">
+          <label className="meta-label">Activity Factor</label>
+          <input 
+            type="number" step="0.1" min="1.0" className="input-full"
+            value={dayLog.activityFactor ?? 1.2}
+            onChange={(e) => updateMeta({ activityFactor: Number(e.target.value) || 1.2 })}
+          />
+          <small className="muted">Default: {state.profile.defaultActivityFactor}</small>
         </div>
+
+        <div className="meta-card">
+          <label className="meta-label">Weight Log (kg)</label>
+          <input 
+            type="number" step="0.1" className="input-full" placeholder="0.0"
+            value={dayLog.weightKg ?? ""}
+            onChange={(e) => updateMeta({ weightKg: e.target.value ? Number(e.target.value) : null })}
+          />
+        </div>
+
+        <div className="meta-card">
+          <label className="meta-label text-blue">Water (Litres)</label>
+          <input 
+            type="number" step="0.25" min="0" className="input-full"
+            value={dayLog.hydrationLitres}
+            onChange={(e) => dispatch({ type: "UPDATE_DAY_HYDRATION", payload: { date: selectedDate, hydrationLitres: Number(e.target.value) } })}
+          />
+        </div>
+
+        {/* Integrated Workout Box */}
+        <WorkoutBox day={dayLog} dispatch={dispatch} />
       </section>
 
-      <hr />
-      
-      {/* 4. Notes Section */}
-      <section className="section-spacer">
-        <h2 className="section-title">Notes</h2>
-        <textarea
-          value={notes}
-          onChange={handleNotesChange}
-          className="textarea-full"
-          placeholder="Add any notes about your day, mood, or activities here..."
+      {/* 4. Notes */}
+      <section>
+        <textarea 
+          className="notes-textarea"
+          placeholder="Daily notes, mood, or reflection..."
+          value={dayLog.notes}
+          onChange={(e) => dispatch({ type: "UPDATE_DAY_NOTES", payload: { date: selectedDate, notes: e.target.value } })}
         />
       </section>
 
-      <hr />
-
-      {/* 5. Meals sections */}
+      {/* 5. Meal Sections */}
       {MEAL_TYPES.map((meal) => {
-        const mealEntries = mealsByType[meal.id] || [];
-        const mealTotalKcal = mealEntries.reduce((sum, m) => sum + m.totalKcal, 0);
+        const entries = mealsByType[meal.id] || [];
+        const sectionKcal = entries.reduce((s, m) => s + m.totalKcal, 0);
 
         return (
-          <section key={meal.id} className="section-spacer">
-            <h2 className="section-title">{meal.label} ({mealTotalKcal} kcal)</h2>
+          <section key={meal.id} className="meal-section">
+            <div className="meal-header">
+              <div className="meal-title">{meal.icon} {meal.label}</div>
+              <span className="meal-kcal-badge">{sectionKcal} kcal</span>
+            </div>
 
-            {/* Quick Add favourites */}
+            {/* Quick Add Chips */}
             {favouriteFoods.length > 0 && (
-              <div className="btn-row wrap-buttons">
-                <strong>Quick Add:</strong>
-                {favouriteFoods.map((food) => (
-                  <button
-                    key={food.id}
-                    type="button"
-                    onClick={() => handleQuickAddFavourite(meal.id, food)}
-                    className="btn-secondary btn-small"
-                  >
-                    {food.name}
+              <div className="quick-add-row">
+                <span className="quick-add-label">Quick Add:</span>
+                {favouriteFoods.map(f => (
+                  <button key={f.id} type="button" className="chip-btn" onClick={() => handleQuickAddFavourite(meal.id, f)}>
+                    + {f.name}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Meal list */}
-            {mealEntries.length === 0 ? (
-              <p className="muted">No entries yet for {meal.label}.</p>
+            {/* Table */}
+            {entries.length > 0 ? (
+              <div className="table-responsive">
+                <table className="data-table meal-table">
+                  <thead>
+                    <tr>
+                      <th className="text-left">Food</th>
+                      <th className="text-right">Qty</th>
+                      <th className="text-left">Unit</th>
+                      <th className="text-right">Kcal</th>
+                      <th className="text-right">Total</th>
+                      <th className="text-left">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map(m => {
+                      const isEd = editingMealId === m.id;
+                      return (
+                        <tr key={m.id}>
+                          <td>{m.foodNameSnapshot}</td>
+                          <td className="text-right">
+                            {isEd ? (
+                              <input type="number" className="input-small text-right" value={editingQuantity} 
+                                onChange={e => setEditingQuantity(e.target.value)} step="0.25" />
+                            ) : m.quantity}
+                          </td>
+                          <td>{m.unitLabelSnapshot}</td>
+                          <td className="text-right">{m.kcalPerUnitSnapshot}</td>
+                          <td className="text-right"><strong>{m.totalKcal}</strong></td>
+                          <td className="btn-row">
+                            {isEd ? (
+                              <>
+                                <button className="btn-primary btn-small" onClick={() => handleSaveEditMeal(m)}><Save size={14}/></button>
+                                <button className="btn-secondary btn-small" onClick={() => {setEditingMealId(null); setEditingQuantity("");}}><X size={14}/></button>
+                              </>
+                            ) : (
+                              <>
+                                <button className="btn-secondary btn-small" onClick={() => { setEditingMealId(m.id); setEditingQuantity(String(m.quantity)); }}>Edit</button>
+                                <button className="btn-danger btn-small" onClick={() => dispatch({ type: "DELETE_MEAL_ENTRY", payload: { date: selectedDate, mealId: m.id } })}>✕</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <table className="data-table meal-table">
-                <thead>
-                  <tr>
-                    <th className="text-left">Food</th>
-                    <th className="text-right">Qty</th>
-                    <th className="text-left">Unit</th>
-                    <th className="text-right">kcal / unit</th>
-                    <th className="text-right">Total kcal</th>
-                    <th className="text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mealEntries.map((m) => {
-                    const isEditing = editingMealId === m.id;
-                    return (
-                      <tr key={m.id} className={isEditing ? 'editing-row' : ''}>
-                        <td>{m.foodNameSnapshot}</td>
-                        <td className="text-right">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.25"
-                              value={editingQuantity}
-                              onChange={(e) =>
-                                setEditingQuantity(e.target.value)
-                              }
-                              className="input-small text-right"
-                            />
-                          ) : (
-                            m.quantity
-                          )}
-                        </td>
-                        <td>{m.unitLabelSnapshot}</td>
-                        <td className="text-right">
-                          {m.kcalPerUnitSnapshot}
-                        </td>
-                        <td className="text-right">{m.totalKcal}</td>
-                        <td className="btn-row">
-                          {isEditing ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleSaveEditMeal(m)}
-                                className="btn-primary btn-small"
-                              >
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelEditMeal}
-                                className="btn-secondary btn-small"
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => startEditMeal(m)}
-                                className="btn-secondary btn-small"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteMeal(m.id)}
-                                className="btn-danger btn-small"
-                              >
-                                ✕
-                              </button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="muted" style={{textAlign:'center', padding:'1rem'}}>No items logged yet.</div>
             )}
 
-            {/* Add meal form for this meal type */}
-            <form
-              onSubmit={(e) => handleAddMeal(e, meal.id)}
-              className="add-meal-form"
-            >
+            {/* Add Form */}
+            <form onSubmit={(e) => handleAddMeal(e, meal.id)} className="add-meal-container">
               <div className="form-row-compact">
-                <div className="form-group food-autocomplete-container">
-                  <FoodAutocomplete
-                    foods={allFoods}
+                <div style={{ flex: 2 }}>
+                  <FoodAutocomplete 
+                    foods={allFoods} 
                     value={newMealFoodSearch[meal.id]}
-                    onChangeText={(text) => {
-                      setNewMealFoodSearch((prev) => ({
-                        ...prev,
-                        [meal.id]: text,
-                      }));
-                      setNewMealFoodId((prev) => ({
-                        ...prev,
-                        [meal.id]: null,
-                      }));
-                    }}
-                    onSelectFood={(food) => {
-                      setNewMealFoodSearch((prev) => ({
-                        ...prev,
-                        [meal.id]: food.name,
-                      }));
-                      setNewMealFoodId((prev) => ({
-                        ...prev,
-                        [meal.id]: food.id,
-                      }));
-                    }}
-                    placeholder="Search saved foods…"
+                    onChangeText={txt => { setNewMealFoodSearch(p => ({...p, [meal.id]: txt})); setNewMealFoodId(p => ({...p, [meal.id]: null})); }}
+                    onSelectFood={f => { setNewMealFoodSearch(p => ({...p, [meal.id]: f.name})); setNewMealFoodId(p => ({...p, [meal.id]: f.id})); }}
+                    placeholder="Search food..."
                   />
                 </div>
-
-                <div className="form-group">
-                  <label>
-                    Qty:{" "}
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.25"
-                      value={newQuantity[meal.id]}
-                      onChange={(e) =>
-                        setNewQuantity((prev) => ({
-                          ...prev,
-                          [meal.id]: e.target.value,
-                        }))
-                      }
-                      className="input-small text-right"
-                    />
-                  </label>
+                <div style={{ width: '100px' }}>
+                  <input type="number" className="input-full" placeholder="Qty" step="0.25"
+                    value={newQuantity[meal.id]} onChange={e => setNewQuantity(p => ({...p, [meal.id]: e.target.value}))} 
+                  />
                 </div>
-
-                <button type="submit" className="btn-primary">Add</button>
+                <button type="submit" className="btn-primary"><Plus size={18}/></button>
               </div>
-
-              <small className="muted form-help-text">
-                Can’t find a food? Add it first in the <strong>Foods</strong> tab.
-              </small>
-
               {newMealFoodId[meal.id] && (
-                <div className="form-selection-info">
-                  Selected:{" "}
-                  <strong>
-                    {
-                      allFoods.find(
-                        (f) => f.id === newMealFoodId[meal.id]
-                      )?.name
-                    }
-                  </strong>
-                  (Unit:{" "}
-                  {
-                    allFoods.find(
-                      (f) => f.id === newMealFoodId[meal.id]
-                    )?.unitLabel
-                  })
+                <div style={{fontSize:'0.85rem', color:'#718096', marginTop:'0.5rem'}}>
+                  Unit: {allFoods.find(f => f.id === newMealFoodId[meal.id])?.unitLabel}
                 </div>
               )}
             </form>
           </section>
         );
       })}
-    </>
+    </div>
   );
 }
