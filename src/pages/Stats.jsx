@@ -1,10 +1,10 @@
 // src/pages/Stats.jsx
 import React, { useMemo, useState } from "react";
-// ✅ FIXED: Import the hook, not the context object
-import { useAppState } from "../context/AppStateContext"; 
+import { useNavigate } from "react-router-dom"; // ✅ Added for navigation
+import { useAppState, effectiveWorkoutKcal } from "../context/AppStateContext"; // ✅ Added effectiveWorkoutKcal
 import "../styles/Stats.css";
 
-// --- Helper Functions (Preserved) ---
+// --- Helper Functions ---
 
 function safeGet(obj, ...keys) {
   for (const k of keys) {
@@ -19,10 +19,7 @@ function getTotalCaloriesForDay(day) {
   if (typeof day.totalCalories === "number") return day.totalCalories;
   if (typeof day.total_kcal === "number") return day.total_kcal;
   if (typeof day.total === "number") return day.total;
-  // Maybe stored as summary totals:
-  if (day.summary && typeof day.summary.totalCalories === "number")
-    return day.summary.totalCalories;
-
+  
   // Fallback: sum meals & extras if present:
   let sum = 0;
   const addFromList = (list) => {
@@ -37,13 +34,12 @@ function getTotalCaloriesForDay(day) {
   addFromList(day.lunch || []);
   addFromList(day.dinner || []);
   addFromList(day.extras || []);
-  // some versions keep a meals array
   addFromList(day.meals || []);
   return sum || 0;
 }
 
 function getTDEE(day, profile) {
-  // Try day.tdee or day.TDEE etc.
+  // Try explicit TDEE on day
   const tdee =
     day.tdee ??
     day.TDEE ??
@@ -53,13 +49,14 @@ function getTDEE(day, profile) {
     undefined;
   if (typeof tdee === "number") return tdee;
 
-  // Try to compute from activityFactor and BMR (if available)
+  // Try to compute from activityFactor and BMR
   const af =
     safeGet(day, "activityFactor") ??
     safeGet(day, "activity_factor") ??
     safeGet(day, "activity") ??
     profile?.defaultActivityFactor ??
     profile?.activityFactor;
+    
   const bmr =
     profile?.bmr ??
     profile?.BMR ??
@@ -68,30 +65,19 @@ function getTDEE(day, profile) {
 
   if (typeof bmr === "number" && typeof af === "number") return Math.round(bmr * af);
 
-  // Last fallback: use profile.dailyKcalTarget or 2500
+  // Last fallback
   return profile?.dailyKcalTarget ?? profile?.dailyKcal ?? 2500;
-}
-
-function getWorkoutCalories(day) {
-  return (
-    day.workoutCalories ??
-    day.workout_calories ??
-    safeGet(day, "workout", "calories") ??
-    safeGet(day, "workout", "cal") ??
-    day.workoutKcal ??
-    0
-  );
 }
 
 // --- Main Component ---
 
 export default function Stats() {
-  // ✅ FIXED: Use the custom hook
   const { state } = useAppState();
+  const navigate = useNavigate(); // ✅ Hook for navigation
   
   const profile = state?.profile ?? {};
   
-  // try several names where days may be stored:
+  // Normalize days data (supports array or object)
   const rawDays =
     state?.days ??
     state?.dayLogs ??
@@ -105,11 +91,12 @@ export default function Stats() {
   const [page, setPage] = useState(0);
 
   const rows = useMemo(() => {
-    // Ensure we have a sorted array, descending by date
+    // Ensure we have an array
     const arr = Array.isArray(rawDays) ? [...rawDays] : Object.values(rawDays || {});
+    
     // Normalize and map into predictable shape
     const mapped = arr.map((d, idx) => {
-      // date may be stored as dateString, iso, key etc.
+      // date resolution
       const date =
         d.date ??
         d.day ??
@@ -122,19 +109,22 @@ export default function Stats() {
 
       const totalCalories = getTotalCaloriesForDay(d);
       const tdee = getTDEE(d, profile);
+      
       const activityFactor =
         safeGet(d, "activityFactor") ??
         safeGet(d, "activity_factor") ??
-        safeGet(d, "af") ??
         profile?.defaultActivityFactor ??
         "";
+
       const intensityFactor =
         safeGet(d, "intensityFactor") ??
         safeGet(d, "intensity_factor") ??
-        safeGet(d, "if") ??
         "";
-      const workoutCalories = getWorkoutCalories(d);
-      // Meal breakdown strings:
+
+      // ✅ Use the helper to get Effective Calories (Base * IF)
+      const effectiveWorkout = effectiveWorkoutKcal(d);
+      
+      // Meal breakdown strings for display
       const lunchK =
         Array.isArray(d.lunch) && d.lunch.length
           ? d.lunch.map((m) => `${m.name || m.food || ""} (${m.totalKcal ?? m.kcal ?? ""})`).join(", ")
@@ -148,7 +138,8 @@ export default function Stats() {
           ? d.extras.map((m) => `${m.name || m.food || ""} (${m.totalKcal ?? m.kcal ?? ""})`).join(", ")
           : d.extrasSummary ?? "";
 
-      const deficit = Math.round((tdee + (workoutCalories || 0)) - (totalCalories || 0));
+      // ✅ Net Deficit = (TDEE + Effective Workout) - Food Intake
+      const deficit = Math.round((tdee + effectiveWorkout) - totalCalories);
       const gainLossKcal = -deficit; // positive -> surplus (gain)
       const gainLossKg = +(gainLossKcal / 7700).toFixed(3);
 
@@ -158,7 +149,7 @@ export default function Stats() {
         tdee,
         activityFactor,
         intensityFactor,
-        workoutCalories,
+        effectiveWorkout, // Store this for the table
         lunchText: lunchK,
         dinnerText: dinnerK,
         extrasText: extrasK,
@@ -169,7 +160,7 @@ export default function Stats() {
       };
     });
 
-    // Sort by date (try ISO) fallback to original order
+    // Sort by date descending
     mapped.sort((a, b) => {
       if (a.date && b.date) {
         const ad = new Date(a.date).getTime();
@@ -196,6 +187,15 @@ export default function Stats() {
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const visible = rows.slice(page * pageSize, (page + 1) * pageSize);
 
+  // --- Handlers ---
+
+  function handleRowClick(date) {
+    if(!date) return;
+    navigate(`/day-log/${date}`);
+    // Also set selected date in context if you want, 
+    // but the route param usually handles it in DayLog.jsx
+  }
+
   function downloadCSV() {
     const headers = [
       "Sr",
@@ -203,7 +203,7 @@ export default function Stats() {
       "TDEE",
       "ActivityFactor",
       "IntensityFactor",
-      "WorkoutCalories",
+      "EffectiveWorkoutKcal",
       "Lunch",
       "Dinner",
       "Extras",
@@ -219,7 +219,7 @@ export default function Stats() {
         r.tdee ?? "",
         r.activityFactor ?? "",
         r.intensityFactor ?? "",
-        r.workoutCalories ?? "",
+        r.effectiveWorkout ?? "",
         `"${(r.lunchText || "").replace(/"/g, '""')}"`,
         `"${(r.dinnerText || "").replace(/"/g, '""')}"`,
         `"${(r.extrasText || "").replace(/"/g, '""')}"`,
@@ -300,7 +300,7 @@ export default function Stats() {
               <th>Lunch</th>
               <th>Dinner</th>
               <th>Extras</th>
-              <th>Total kcal</th>
+              <th>Total Intake</th>
               <th>Deficit (kcal)</th>
               <th>Gain/Loss (kg)</th>
             </tr>
@@ -309,17 +309,31 @@ export default function Stats() {
             {visible.map((r, i) => (
               <tr key={r.id ?? i}>
                 <td>{i + 1 + page * pageSize}</td>
-                <td>{String(r.date ?? "").slice(0, 10)}</td>
+                
+                {/* ✅ Clickable Date */}
+                <td 
+                  onClick={() => handleRowClick(r.date)} 
+                  style={{cursor: "pointer", color: "#3182ce", fontWeight: "600", textDecoration: "underline"}}
+                  title="Go to Day Log"
+                >
+                  {String(r.date ?? "").slice(0, 10)}
+                </td>
+
                 <td>{r.tdee}</td>
                 <td>{r.activityFactor}</td>
-                <td>{r.intensityFactor}</td>
-                <td>{r.workoutCalories}</td>
+                <td>{r.intensityFactor || "-"}</td>
+                
+                {/* ✅ Show Effective Workout Kcal */}
+                <td>{r.effectiveWorkout}</td>
+                
                 <td className="cell-text">{r.lunchText}</td>
                 <td className="cell-text">{r.dinnerText}</td>
                 <td className="cell-text">{r.extrasText}</td>
                 <td>{r.totalCalories}</td>
-                <td>{r.deficit}</td>
-                <td className={r.gainLossKg > 0 ? "surplus" : "loss"}>{r.gainLossKg}</td>
+                <td style={{ fontWeight: "bold" }}>{r.deficit}</td>
+                <td className={r.gainLossKg > 0 ? "surplus" : "loss"}>
+                  {r.gainLossKg > 0 ? "+" : ""}{r.gainLossKg}
+                </td>
               </tr>
             ))}
             {visible.length === 0 && (

@@ -30,11 +30,25 @@ const initialState = {
     ...DEFAULT_PROFILE,
   },
   foodItems: [],
-  dayLogs: {},
+  dayLogs: {}, // Object keyed by date string
   selectedDate: todayIso(),
 };
 
 // --------- HELPERS ---------
+
+// ✅ NEW: Helper to calculate effective calories based on IF
+export function effectiveWorkoutKcal(day) {
+  if (!day) return 0;
+  // Support new field 'workoutCalories' and fallback to old 'workoutKcal'
+  const raw = day.workoutCalories ?? day.workoutKcal ?? 0;
+  
+  // If intensityFactor is null/undefined, return raw. 
+  // If it is set (e.g. 1.1), multiply.
+  if (day.intensityFactor === null || day.intensityFactor === undefined) {
+    return raw;
+  }
+  return Math.round(raw * day.intensityFactor);
+}
 
 function loadFromStorage() {
   try {
@@ -74,11 +88,18 @@ function ensureDayLog(state, date) {
   return {
     date,
     activityFactor: state.profile?.defaultActivityFactor ?? 1.2,
-    workoutKcal: 0,
     weightKg: null,
     hydrationLitres: 0,
     notes: "",
-    meals: [], // Flexible array structure
+    meals: [], 
+    
+    // ✅ NEW: Default Workout Fields
+    workoutCalories: 0,       // Standard kcal recorded
+    intensityFactor: null,    // null = no multiplier ("-")
+    workoutDescription: "",   // Optional text
+    
+    // Legacy support (optional, can remain 0)
+    workoutKcal: 0,
   };
 }
 
@@ -95,16 +116,10 @@ function appReducer(state, action) {
 
     // --- NEW: Handle importing/overwriting the entire state ---
     case "IMPORT_STATE": {
-      // The payload is expected to be the new, full state object
-      // We perform a full overwrite as required for an import
       return {
         ...action.payload,
-        // Optional: Retain the current selectedDate if the imported state doesn't have it, 
-        // or always use the imported date if provided. 
-        // For simplicity and full overwrite, we just return the payload:
       };
     }
-    // ---------------------------------------------------------
 
     case "UPSERT_FOOD_ITEM": {
       const {
@@ -246,6 +261,30 @@ function appReducer(state, action) {
       const updatedDay = {
         ...dayLog,
         ...patch,
+      };
+
+      return {
+        ...state,
+        dayLogs: {
+          ...state.dayLogs,
+          [date]: updatedDay,
+        },
+      };
+    }
+
+    // ✅ NEW: Dedicated action for Workout updates
+    case "SET_WORKOUT": {
+      const { date, workoutCalories, intensityFactor, workoutDescription } = action.payload;
+      const dayLog = ensureDayLog(state, date);
+
+      const updatedDay = {
+        ...dayLog,
+        workoutCalories: Number(workoutCalories) || 0,
+        // If intensityFactor is explicitly null or empty string, store null
+        intensityFactor: (intensityFactor === "" || intensityFactor === null) 
+          ? null 
+          : Number(intensityFactor),
+        workoutDescription: workoutDescription || "",
       };
 
       return {
