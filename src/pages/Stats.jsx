@@ -1,7 +1,8 @@
 // src/pages/Stats.jsx
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom"; 
-import { useAppState, effectiveWorkoutKcal } from "../context/AppStateContext"; 
+import React, { useMemo, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppState, effectiveWorkoutKcal } from "../context/AppStateContext";
+import { X, Calendar as CalendarIcon, ArrowRight, Download } from "lucide-react"; 
 import "../styles/Stats.css";
 
 // --- Helper Functions ---
@@ -14,7 +15,6 @@ function safeGet(obj, ...keys) {
   return undefined;
 }
 
-// Normalize a date value to the same yyyy-mm-dd key
 function dateToKey(d) {
   if (!d) return null;
   if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
@@ -23,70 +23,39 @@ function dateToKey(d) {
   return dt.toISOString().slice(0, 10);
 }
 
-// Safe number formatting
 function fmtNum(v) {
   if (v === null || v === undefined) return "-";
   return Math.round(v);
 }
 
-/**
- * Compute totals for a given dateKey (yyyy-mm-dd)
- * Sums up the totalKcal for each meal type.
- */
 function computeTotalsForDate(state, dateKey) {
   if (!state || !dateKey) return { lunch: 0, dinner: 0, extras: 0 };
-
-  // Direct lookup in dayLogs
   const maybeDay = state.dayLogs && state.dayLogs[dateKey];
 
   if (maybeDay) {
     const meals = maybeDay.meals || [];
-    
-    // Helper to sum by mealType
     const sumByType = (type) => {
         if (!Array.isArray(meals)) return 0;
         return meals
             .filter(m => (m.mealType || m.type || "").toLowerCase() === type)
             .reduce((s, m) => s + (m.totalKcal ?? (m.quantity ? m.quantity * (m.kcalPerUnit ?? 0) : 0)), 0);
     };
-
-    // Note: 'extra' matches the ID used in DayLog.jsx
     return {
         lunch: sumByType("lunch"),
         dinner: sumByType("dinner"),
         extras: sumByType("extra") + sumByType("extras") + sumByType("snack") 
     };
   }
-
   return { lunch: 0, dinner: 0, extras: 0 };
 }
 
 function getTDEE(day, profile) {
-  const tdee =
-    day.tdee ??
-    day.TDEE ??
-    safeGet(day, "tdee") ??
-    safeGet(day, "TDEE") ??
-    safeGet(day, "caloriesTarget") ??
-    undefined;
+  const tdee = day?.tdee ?? day?.TDEE ?? safeGet(day, "caloriesTarget");
   if (typeof tdee === "number") return tdee;
-
-  const af =
-    safeGet(day, "activityFactor") ??
-    safeGet(day, "activity_factor") ??
-    safeGet(day, "activity") ??
-    profile?.defaultActivityFactor ??
-    profile?.activityFactor;
-    
-  const bmr =
-    profile?.bmr ??
-    profile?.BMR ??
-    profile?.calculatedBmr ??
-    profile?.basalMetabolicRate;
-
+  const af = safeGet(day, "activityFactor") ?? profile?.defaultActivityFactor ?? 1.2;
+  const bmr = profile?.bmr ?? profile?.BMR ?? profile?.calculatedBmr;
   if (typeof bmr === "number" && typeof af === "number") return Math.round(bmr * af);
-
-  return profile?.dailyKcalTarget ?? profile?.dailyKcal ?? 2500;
+  return profile?.dailyKcalTarget ?? 2500;
 }
 
 // --- Main Component ---
@@ -94,9 +63,19 @@ function getTDEE(day, profile) {
 export default function Stats() {
   const { state } = useAppState();
   const navigate = useNavigate(); 
-  
   const profile = state?.profile ?? {};
   
+  // Ref for the date input to force-open picker
+  const dateInputRef = useRef(null);
+
+  // 1. Filter State
+  const [pickedDate, setPickedDate] = useState("");
+  
+  // 2. Pagination State
+  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(0);
+
+  // 3. Process Data
   const rawDays =
     state?.days ??
     state?.dayLogs ??
@@ -105,39 +84,20 @@ export default function Stats() {
     state?.logs ??
     [];
 
-  const [filterText, setFilterText] = useState("");
-  const [pageSize, setPageSize] = useState(25);
-  const [page, setPage] = useState(0);
-
   const rows = useMemo(() => {
     const arr = Array.isArray(rawDays) ? [...rawDays] : Object.values(rawDays || {});
     
     const mapped = arr.map((d, idx) => {
       const rawDate = d.date ?? d.day ?? d.dateString ?? d.isoDate ?? d.loggedAt ?? d.key ?? "";
       const dateKey = dateToKey(rawDate);
-
-      // 1. Calculate the Breakdowns (Sums)
       const breakdown = computeTotalsForDate(state, dateKey);
-      
-      // 2. Total Calories is the sum of the breakdown
       const totalCalories = breakdown.lunch + breakdown.dinner + breakdown.extras;
-
       const tdee = getTDEE(d, profile);
-      
-      const activityFactor =
-        safeGet(d, "activityFactor") ??
-        safeGet(d, "activity_factor") ??
-        profile?.defaultActivityFactor ??
-        "";
-
-      const intensityFactor =
-        safeGet(d, "intensityFactor") ??
-        safeGet(d, "intensity_factor") ??
-        "";
-
+      const activityFactor = safeGet(d, "activityFactor") ?? profile?.defaultActivityFactor ?? "";
+      const intensityFactor = safeGet(d, "intensityFactor") ?? "";
       const effectiveWorkout = effectiveWorkoutKcal(d);
-      
-      // Generate text summaries for CSV export only (not shown in table)
+
+      // Text strings for CSV only
       const getMealText = (type) => {
           if (!d.meals) return "";
           return d.meals
@@ -160,7 +120,7 @@ export default function Stats() {
         activityFactor,
         intensityFactor,
         effectiveWorkout, 
-        breakdown, // Contains { lunch: 500, dinner: 300, extras: 0 }
+        breakdown, 
         lunchText,
         dinnerText,
         extrasText,
@@ -180,41 +140,48 @@ export default function Stats() {
       return 0;
     });
 
-    return mapped.filter((r) => {
-      if (!filterText) return true;
-      const ft = filterText.toLowerCase();
-      return (
-        (r.date && String(r.date).toLowerCase().includes(ft)) ||
-        (r.lunchText && r.lunchText.toLowerCase().includes(ft))
-      );
-    });
-  }, [rawDays, state, profile, filterText]);
+    if (pickedDate) {
+      return mapped.filter(r => r.date === pickedDate);
+    }
+    return mapped;
+  }, [rawDays, state, profile, pickedDate]);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const visible = rows.slice(page * pageSize, (page + 1) * pageSize);
 
+  // --- Handlers ---
+
+  const handleOpenDayLog = () => {
+    if (pickedDate) {
+      navigate(`/day-log?date=${pickedDate}`);
+    }
+  };
+
+  const clearFilter = () => {
+    setPickedDate(""); 
+    setPage(0);
+  };
+
+  const handleDateWrapperClick = () => {
+    // This allows clicking the icon or the div to open the calendar
+    if (dateInputRef.current && dateInputRef.current.showPicker) {
+        dateInputRef.current.showPicker();
+    } else if (dateInputRef.current) {
+        dateInputRef.current.focus();
+    }
+  };
+
   function handleRowClick(date) {
     if(!date) return;
-    navigate(`/day-log/${date}`);
+    navigate(`/day-log?date=${date}`);
   }
 
   function downloadCSV() {
     const headers = [
-      "Sr",
-      "Date",
-      "TDEE",
-      "ActivityFactor",
-      "IntensityFactor",
-      "EffectiveWorkoutKcal",
-      "Lunch(kcal)",
-      "Dinner(kcal)",
-      "Extras(kcal)",
-      "Lunch_Items",
-      "Dinner_Items",
-      "Extras_Items",
-      "TotalCalories",
-      "Deficit_kcal",
-      "GainLoss_kg",
+      "Sr", "Date", "TDEE", "AF", "IF", "Workout_Kcal",
+      "Lunch_Kcal", "Dinner_Kcal", "Extras_Kcal",
+      "Lunch_Items", "Dinner_Items", "Extras_Items",
+      "Total_Kcal", "Deficit", "GainLoss_Kg"
     ];
     const csvRows = [headers.join(",")];
     visible.forEach((r, i) => {
@@ -266,34 +233,84 @@ export default function Stats() {
 
   return (
     <div className="stats-page container-card">
+      
+      {/* 1. Summary Header */}
       <header className="stats-header">
-        <h2>All-time summary</h2>
+        <h2>{pickedDate ? "Single Day Summary" : "All-time Summary"}</h2>
         <div className="summary-row">
-          <div>Days logged: <strong>{allTime.totalDays}</strong></div>
-          <div>Net deficit (kcal): <strong>{allTime.totalDeficit}</strong></div>
-          <div>Estimated weight change (kg): <strong>{allTime.totalGainKg.toFixed(3)}</strong></div>
-          <div>Total Cals consumed: <strong>{allTime.totalCaloriesConsumed}</strong></div>
+          <div>Entries: <strong>{allTime.totalDays}</strong></div>
+          <div>Net Deficit: <strong>{allTime.totalDeficit}</strong></div>
+          <div>Est. Weight: <strong>{allTime.totalGainKg.toFixed(3)} kg</strong></div>
+          <div>Total Intake: <strong>{allTime.totalCaloriesConsumed}</strong></div>
         </div>
       </header>
 
+      {/* 2. Controls Section */}
       <div className="stats-controls">
-        <div className="left">
-          <input placeholder="Filter..." value={filterText} onChange={(e)=>{setFilterText(e.target.value); setPage(0);}}/>
-          <label>Rows:
-            <select value={pageSize} onChange={(e)=>{ setPageSize(Number(e.target.value)); setPage(0); }}>
+        
+        {/* Left: Custom Date Picker UI */}
+        <div className="left" style={{ gap: '10px', alignItems: 'center' }}>
+            
+            {/* Custom Styled Date Picker Wrapper */}
+            <div className="custom-date-picker" onClick={handleDateWrapperClick}>
+                <CalendarIcon size={16} className="calendar-icon-overlay" />
+                <input 
+                  ref={dateInputRef}
+                  type="date" 
+                  value={pickedDate} 
+                  onChange={(e) => {
+                      setPickedDate(e.target.value);
+                      setPage(0); 
+                  }}
+                  className="input-date-hidden-ui"
+                  placeholder="Jump to Date"
+                />
+            </div>
+
+            {pickedDate && (
+                <>
+                    <button 
+                        onClick={handleOpenDayLog} 
+                        className="btn-primary"
+                    >
+                        Open DayLog <ArrowRight size={14} />
+                    </button>
+                    <button 
+                        onClick={clearFilter} 
+                        className="btn-secondary"
+                        title="Show all history"
+                    >
+                        <X size={14} /> Clear
+                    </button>
+                </>
+            )}
+        </div>
+
+        {/* Right: Rows & Exports */}
+        <div className="right">
+          <label className="rows-label" style={{ marginRight: '10px', fontSize: '0.9rem' }}>
+            Rows:
+            <select 
+                value={pageSize} 
+                onChange={(e)=>{ setPageSize(Number(e.target.value)); setPage(0); }}
+                style={{ marginLeft: '5px', padding: '4px', borderRadius: '4px' }}
+            >
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
           </label>
-        </div>
-        <div className="right">
-          <button onClick={downloadCSV}>Export CSV</button>
-          <button onClick={downloadJSON}>Export JSON</button>
+          <button className="btn-secondary" title="Download CSV" onClick={downloadCSV}>
+             <Download size={14} /> CSV
+          </button>
+          <button className="btn-secondary" title="Download JSON" onClick={downloadJSON}>
+             <Download size={14} /> JSON
+          </button>
         </div>
       </div>
 
+      {/* 3. The Table */}
       <div className="table-wrap">
         <table className="stats-table">
           <thead>
@@ -305,12 +322,11 @@ export default function Stats() {
               <th>IF</th>
               <th>Workout</th>
               
-              {/* ✅ CLEANER: Only showing Numeric Sums now */}
               <th>Lunch</th>
               <th>Dinner</th>
               <th>Extras</th>
               
-              <th>Total Intake</th>
+              <th>Total</th>
               <th>Deficit</th>
               <th>Gain/Loss</th>
             </tr>
@@ -333,7 +349,6 @@ export default function Stats() {
                 <td>{r.intensityFactor || "-"}</td>
                 <td>{r.effectiveWorkout}</td>
                 
-                {/* ✅ NUMBERS ONLY - Sum of kcal in bracket */}
                 <td>{fmtNum(r.breakdown.lunch)}</td>
                 <td>{fmtNum(r.breakdown.dinner)}</td>
                 <td>{fmtNum(r.breakdown.extras)}</td>
@@ -346,7 +361,13 @@ export default function Stats() {
               </tr>
             ))}
             {visible.length === 0 && (
-              <tr><td colSpan={12} style={{textAlign:"center", padding:"1rem"}}>No rows to show</td></tr>
+              <tr>
+                <td colSpan={12} style={{textAlign:"center", padding:"2rem", color: "#718096"}}>
+                  {pickedDate 
+                    ? `No entry found for ${pickedDate}. Click "Open DayLog" to create one.` 
+                    : "No history found."}
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

@@ -1,5 +1,6 @@
 // src/pages/DayLog.jsx
 import React, { useMemo, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom"; // ✅ Added to read query params
 import { useAppState, effectiveWorkoutKcal } from "../context/AppStateContext";
 import FoodAutocomplete from "../components/FoodAutocomplete";
 
@@ -15,6 +16,9 @@ function generateId(prefix) {
   }
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
+
+// ✅ Helper to normalize query date string
+const isValidDateString = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 // --- NEW: Workout Box Component ---
 function WorkoutBox({ day, dispatch }) {
@@ -114,6 +118,18 @@ function WorkoutBox({ day, dispatch }) {
 
 export default function DayLog() {
   const { state, dispatch } = useAppState();
+  const location = useLocation(); // ✅ Hook to access URL params
+
+  // ✅ EFFECT: Read ?date=YYYY-MM-DD from URL on mount/update
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const queryDate = params.get("date"); // e.g. "2025-11-25"
+
+    if (queryDate && isValidDateString(queryDate)) {
+      dispatch({ type: "SET_SELECTED_DATE", payload: queryDate });
+    }
+  }, [location.search, dispatch]);
+
   const selectedDate = state.selectedDate;
   const dailyTarget = state.profile.dailyKcalTarget || 0; 
 

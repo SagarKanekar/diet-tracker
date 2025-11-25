@@ -11,8 +11,8 @@
 }
 
 .container-card {
-  background: #ffffff; /* Enforce white background */
-  color: #2d3748;      /* Enforce dark text (Fixes invisible text issue) */
+  background: #ffffff;
+  color: #2d3748;
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
@@ -21,7 +21,7 @@
 
 /* --- Header & Summary --- */
 .stats-header h2 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0; /* Reduced from 1rem */
   color: #1a202c;
   font-size: 1.5rem;
   font-weight: 700;
@@ -31,10 +31,9 @@
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem; /* Reduced from 1rem */
 }
 
-/* Make summary items look like "chips" */
 .stats-header .summary-row div {
   background: #edf2f7;
   padding: 0.5rem 1rem;
@@ -58,16 +57,19 @@
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #edf2f7;
+  
+  /* Tighter spacing here */
+  padding-top: 1rem; 
+  border-top: 1px solid #edf2f7; /* This creates the line, so we don't need <hr> */
 }
 
-.stats-controls input,
+/* Standard Inputs */
+.stats-controls input:not(.input-date-hidden-ui),
 .stats-controls select {
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
   border: 1px solid #cbd5e0;
-  background-color: #fff; /* Fixes dark input background */
+  background-color: #fff;
   color: #2d3748;
   font-size: 0.9rem;
   outline: none;
@@ -91,6 +93,9 @@
   font-size: 0.85rem;
   transition: background 0.2s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .stats-controls button:hover {
@@ -108,6 +113,16 @@
   gap: 0.5rem;
 }
 
+.stats-controls .btn-secondary {
+  background: white;
+  color: #4a5568;
+  border: 1px solid #cbd5e0;
+}
+.stats-controls .btn-secondary:hover {
+  background: #edf2f7;
+  border-color: #a0aec0;
+}
+
 /* --- Table Styling --- */
 .table-wrap {
   overflow-x: auto;
@@ -115,7 +130,6 @@
   border: 1px solid #e2e8f0;
 }
 
-/* Custom Scrollbar for the table (Chrome/Safari) */
 .table-wrap::-webkit-scrollbar {
   height: 8px;
 }
@@ -133,7 +147,7 @@
 .stats-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1100px; /* Forces scroll on small screens */
+  min-width: 1100px;
   background: white;
 }
 
@@ -158,35 +172,24 @@
   vertical-align: middle;
 }
 
-/* Zebra striping for readability */
 .stats-table tr:nth-child(even) {
   background-color: #fcfcfc;
 }
-
 .stats-table tr:hover {
-  background-color: #ebf8ff; /* Light blue hover */
+  background-color: #ebf8ff;
 }
 
-/* Truncate long text cells */
 .cell-text {
   max-width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #718096; /* Slightly lighter for descriptions */
+  color: #718096;
 }
 
-/* Gain/Loss Colors */
-.surplus { 
-  color: #e53e3e; /* Red */
-  font-weight: 600;
-} 
-.loss { 
-  color: #38a169; /* Green */
-  font-weight: 600;
-}
+.surplus { color: #e53e3e; font-weight: 600; } 
+.loss { color: #38a169; font-weight: 600; }
 
-/* --- Pagination --- */
 .pagination {
   display: flex;
   justify-content: space-between;
@@ -206,16 +209,60 @@
   border-radius: 6px;
   cursor: pointer;
   margin-left: 0.5rem;
+}
+
+/* --- NEW: Professional Date Picker Styling --- */
+.custom-date-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
   transition: all 0.2s;
+  min-width: 170px; /* Width for date text */
+  height: 38px; /* Match button height */
 }
 
-.pagination button:hover:not(:disabled) {
-  background: #edf2f7;
-  border-color: #a0aec0;
+.custom-date-picker:hover {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
 }
 
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #f7fafc;
+.calendar-icon-overlay {
+  color: #718096;
+  margin-right: 8px;
+  pointer-events: none; /* Let click pass through to wrapper */
+  flex-shrink: 0;
+}
+
+/* The actual input, styled to blend in */
+.input-date-hidden-ui {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: #2d3748;
+  width: 100%;
+  cursor: pointer;
+  padding: 0 !important;
+  margin: 0;
+}
+
+/* Hide the native browser calendar icon so we use our Lucide icon */
+.input-date-hidden-ui::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  height: auto;
+  color: transparent;
+  background: transparent;
+  cursor: pointer;
 }
