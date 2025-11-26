@@ -1,6 +1,5 @@
 // src/pages/Foods.jsx
 import React, { useState } from "react";
-// ✅ FIXED: Explicitly adding .jsx extension
 import { useAppState } from "../context/AppStateContext.jsx";
 import { 
   Search, Plus, Edit2, Trash2, Save, X, 
@@ -101,6 +100,17 @@ export default function Foods() {
     });
     setEditingId(null);
   };
+  
+  // Helper for deleting an item
+  const deleteFood = (foodId) => {
+    if (window.confirm("Are you sure you want to delete this food item?")) {
+        dispatch({
+            type: "DELETE_FOOD_ITEM",
+            payload: { id: foodId },
+        });
+    }
+  };
+
 
   const handleAddNew = (e) => {
     e.preventDefault();
@@ -110,7 +120,7 @@ export default function Foods() {
     dispatch({
       type: "UPSERT_FOOD_ITEM",
       payload: {
-        id: crypto.randomUUID(),
+        id: crypto.randomUUID(), 
         name,
         category: newFood.category || "home",
         unitLabel: newFood.unitLabel || "serving",
@@ -268,7 +278,7 @@ export default function Foods() {
                             <th>Unit</th>
                             <th style={{textAlign:'right'}}>Kcal/Unit</th>
                             <th style={{textAlign:'center'}}>Fav</th>
-                            <th>Actions</th>
+                            <th style={{textAlign:'right'}}>Actions</th> {/* ⬅️ FIX 1: Align header to the right */}
                         </tr>
                     </thead>
                     <tbody>
@@ -281,7 +291,7 @@ export default function Foods() {
                                             <input className="table-input" value={editForm.name} onChange={(e) => updateEditForm("name", e.target.value)} />
                                         ) : (
                                             <span style={{display:'flex', alignItems:'center'}}>
-                                                {food.isFavourite && <Star size={14} className="fav-star" />}
+                                                {food.isFavourite && <Star size={14} className="fav-star" style={{marginRight: '0.3rem'}} />}
                                                 {food.name}
                                             </span>
                                         )}
@@ -314,15 +324,22 @@ export default function Foods() {
                                             food.isFavourite ? <Star size={16} className="fav-star" /> : <span className="muted">-</span>
                                         )}
                                     </td>
-                                    <td style={{display:'flex', gap:'0.5rem'}}>
-                                        {isEditing ? (
-                                            <>
-                                                <button className="action-btn save" onClick={saveEdit} title="Save"><Save size={18}/></button>
-                                                <button className="action-btn cancel" onClick={cancelEdit} title="Cancel"><X size={18}/></button>
-                                            </>
-                                        ) : (
-                                            <button className="action-btn" onClick={() => startEdit(food)} title="Edit"><Edit2 size={18}/></button>
-                                        )}
+                                    
+                                    {/* ⬅️ FIX 2: Wrapped buttons in a div with inline-flex, removed inline float/flex on TD */}
+                                    <td> 
+                                        <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                                            {isEditing ? (
+                                                <>
+                                                    <button className="action-btn save" onClick={saveEdit} title="Save"><Save size={18}/></button>
+                                                    <button className="action-btn cancel" onClick={cancelEdit} title="Cancel"><X size={18}/></button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button className="action-btn" onClick={() => startEdit(food)} title="Edit"><Edit2 size={18}/></button>
+                                                    <button className="action-btn cancel" onClick={() => deleteFood(food.id)} title="Delete"><Trash2 size={18}/></button>
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             );

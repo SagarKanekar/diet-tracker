@@ -1,8 +1,8 @@
 /* src/styles.css
    Global design system: light, calm, productivity-first
    - Tokens
-   - Resets
-   - Layout helpers (.page, .card, .card-grid, forms, buttons, tables)
+   - Reset
+   - Generic layout helpers (.page, .card, .card-grid, .table, .btn-row)
 */
 
 /* ---------- Design Tokens ---------- */
@@ -48,7 +48,7 @@
   --text-xl: clamp(1.25rem, 2vw, 1.5rem);
 }
 
-/* ---------- Reset-ish ---------- */
+/* ---------- Reset / base ---------- */
 *,
 *::before,
 *::after {
@@ -75,7 +75,7 @@ body {
   min-height: 100vh;
 }
 
-/* Prevent images / tables overflowing cards */
+/* Images & SVGs don’t overflow containers */
 img,
 svg {
   max-width: 100%;
@@ -84,14 +84,14 @@ svg {
 
 /* ---------- Generic page layout ---------- */
 
-/* Used by most pages (Dashboard, Stats, etc.) */
+/* Used by simple pages (Stats, Trends, Settings, etc.) */
 .page {
   max-width: var(--page-max-width);
   margin: 0 auto;
   padding: var(--page-padding-y) var(--page-padding-x);
 }
 
-/* Page header: title + subtitle + actions */
+/* Page header: title + subtitle */
 .page-header {
   display: flex;
   flex-wrap: wrap;
@@ -119,7 +119,6 @@ svg {
   gap: var(--gap);
 }
 
-/* helper classes: use in JSX as "card-grid card-grid-3" */
 @media (min-width: 900px) {
   .card-grid-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -201,7 +200,7 @@ form {
   font-weight: 500;
 }
 
-/* Inputs & selects */
+/* Base inputs */
 input,
 select,
 textarea {
@@ -243,7 +242,7 @@ textarea {
 button {
   border-radius: var(--control-radius);
   border: 1px solid transparent;
-  padding: 0.45rem 0.95rem;
+  padding: 0.4rem 0.9rem;
   background: var(--surface-muted);
   color: var(--text);
   font-size: var(--text-sm);
@@ -253,7 +252,7 @@ button {
   gap: 0.35rem;
   transition: background 0.15s ease, border-color 0.15s ease,
     transform 0.08s ease, box-shadow 0.15s ease;
-  min-height: 36px;
+  min-height: 34px;
 }
 
 button:hover {
@@ -261,7 +260,7 @@ button:hover {
   transform: translateY(-0.5px);
 }
 
-/* Primary button (use className="btn-primary") */
+/* Primary button */
 button.btn-primary {
   background: var(--primary);
   border-color: var(--primary);
@@ -272,7 +271,6 @@ button.btn-primary {
 
 button.btn-primary:hover {
   background: var(--primary-strong);
-  border-color: var(--primary-strong);
 }
 
 /* Ghost / secondary */
@@ -334,7 +332,7 @@ button.btn-ghost {
 /* ---------- Misc utilities ---------- */
 
 .muted {
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-size: var(--text-xs);
 }
 

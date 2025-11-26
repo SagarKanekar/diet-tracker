@@ -1,9 +1,9 @@
 /* src/App.css
-   App-level polish (brand lockup, minor tweaks).
+   App-level polish (brand lockup).
    Core layout & tokens live in styles.css.
 */
 
-/* Safety net so the body uses our global vars */
+/* Ensure body just respects our global vars */
 body {
   background: var(--bg);
   color: var(--text);
