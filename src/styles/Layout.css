@@ -102,6 +102,13 @@
   }
 }
 
+/* Use a slightly wider content column on very large desktops */
+@media (min-width: 1440px) {
+  .page-container {
+    max-width: 1320px;
+  }
+}
+
 /* --- Responsiveness --- */
 @media (max-width: 768px) {
   .topbar {
