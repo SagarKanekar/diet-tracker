@@ -1,0 +1,119 @@
+/* src/styles/Layout.css */
+
+/* --- Root layout wrapper --- */
+.app-root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* The main column to the right of the sidebar overlay */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: filter 0.2s ease;
+}
+
+/* .main-area.dimmed is defined in Sidebar.css (blur + pointer lock) */
+
+/* --- Topbar --- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--page-padding-x);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topbar-version {
+  font-size: var(--text-xs);
+  color: var(--text-soft);
+}
+
+/* Make the logo click target clean (button reset) */
+.topbar-logo-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.topbar-logo-btn:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* --- Content area --- */
+.content {
+  flex: 1;
+  width: 100%;
+}
+
+/* Center the page content and give vertical breathing room */
+.app-shell {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1.5rem 0 2.5rem;
+  width: 100%;
+}
+
+/* Actual content column */
+.page-container {
+  width: 100%;
+  max-width: var(--page-max-width);
+  padding: 0 var(--page-padding-x);
+  margin: 0 auto;
+  animation: pageFadeIn 0.35s ease-out;
+}
+
+/* Simple fade-in for route transitions */
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Responsiveness --- */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 1rem;
+    height: 60px;
+  }
+
+  .app-shell {
+    padding: 1rem 0 1.5rem;
+  }
+
+  .page-container {
+    padding: 0 1rem;
+  }
+}

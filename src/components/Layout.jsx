@@ -1,53 +1,48 @@
+// src/components/Layout.jsx
 import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
-import Sidebar from "./Sidebar";
+import { Outlet, useNavigate } from "react-router-dom";
+import Sidebar from "./Sidebar.jsx";
+
+import "../styles/Layout.css";
 import "../App.css";
 
 export default function Layout() {
-  // State to manage the sidebar open/closed status
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // The navigation links structure to be passed to the Sidebar
-  const navLinks = [
-    { to: "/", label: "Dashboard", end: true },
-    { to: "/day-log", label: "Day Log" },
-    { to: "/foods", label: "Foods" },
-    { to: "/trends", label: "Trends" },
-    { to: "/settings", label: "Settings" },
-  ];
+  const navigate = useNavigate();
 
   return (
     <div className="app-root">
-      {/* Integrate the Sidebar component */}
-      <Sidebar 
-        open={sidebarOpen} 
-        setOpen={setSidebarOpen} 
-        compact={true}
-        navLinks={navLinks}
-      />
+      {/* Off-canvas sidebar (handles its own compact buttons + overlay) */}
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 
-      {/* The main content area, with conditional "dimmed" class for overlay effect */}
+      {/* Main content column */}
       <div className={`main-area ${sidebarOpen ? "dimmed" : ""}`}>
-        
+        {/* Sticky top bar */}
         <header className="topbar">
           <div className="topbar-left">
-            
-            {/* Styled Brand Logo/Title using the new 'brand' class with split spans */}
-            <h1 className="brand" onClick={() => window.location.assign("/")}>
+            <button
+              type="button"
+              className="topbar-logo-btn"
+              onClick={() => navigate("/")}
+            >
+              <span className="brand">
                 <span className="diet">Diet</span>
                 <span className="tracker">Tracker</span>
-            </h1>
-            
+              </span>
+            </button>
           </div>
+
           <div className="topbar-right">
-            {/* any top controls / user info */}
-            <div className="muted">Chat × Sagar · v1</div>
+            <span className="topbar-version">v1.0 • Local Storage</span>
           </div>
         </header>
 
+        {/* Routed pages go here */}
         <main className="content">
-          <div className="page">
-            <Outlet />
+          <div className="app-shell">
+            <div className="page-container">
+              <Outlet />
+            </div>
           </div>
         </main>
       </div>
