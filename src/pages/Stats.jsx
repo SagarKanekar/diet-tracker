@@ -9,10 +9,7 @@ import {
   calculateEffectiveWorkout,
   formatIF,
 } from "../utils/calculations";
-import {
-  Calendar as CalendarIcon,
-  Download,
-} from "lucide-react";
+import { Calendar as CalendarIcon, Download } from "lucide-react";
 
 import "../styles/Stats.css";
 
@@ -28,6 +25,18 @@ const formatHeaderDate = (iso) => {
       day: "numeric",
     }),
   };
+};
+
+const formatFullDate = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 };
 
 export default function Stats() {
@@ -53,7 +62,7 @@ export default function Stats() {
         const tdee = baseTdee + effectiveWorkout;
 
         const deficit = tdee - totals.total; // +ve = under target
-        const estDeltaKg = -(deficit / 7700); // rough rule of thumb
+        const estDeltaKg = -(deficit / 7700); // rule of thumb
 
         const activityFactor =
           day.activityFactor ?? profile.defaultActivityFactor ?? 1.2;
@@ -90,7 +99,7 @@ export default function Stats() {
       })
       .filter(Boolean);
 
-    // Newest first
+    // newest first
     mapped.sort((a, b) => new Date(b.date) - new Date(a.date));
     return mapped;
   }, [dayLogs, profile]);
@@ -102,9 +111,7 @@ export default function Stats() {
   }, [allDays, pickedDate]);
 
   const totalColumns = filteredDays.length || 0;
-  const totalPages = totalColumns
-    ? Math.ceil(totalColumns / pageSize)
-    : 1;
+  const totalPages = totalColumns ? Math.ceil(totalColumns / pageSize) : 1;
   const safePage = Math.min(page, Math.max(0, totalPages - 1));
 
   const startIdx = safePage * pageSize;
@@ -149,7 +156,7 @@ export default function Stats() {
     };
   }, [allDays]);
 
-  // ---- Group + row config ----------------------------------------------------
+  // ---- Config for groups/rows ------------------------------------------------
   const groups = [
     {
       id: "nutrition",
@@ -182,9 +189,7 @@ export default function Stats() {
           field: "estDeltaKg",
           unit: "kg",
           formatter: (v) =>
-            v === null || v === undefined
-              ? "-"
-              : v.toFixed(2),
+            v === null || v === undefined ? "-" : v.toFixed(2),
           prefix: (v) => (v > 0 ? "+" : ""),
           color: (v) => (v <= 0 ? "text-green" : "text-red"),
         },
@@ -269,7 +274,6 @@ export default function Stats() {
   };
 
   const handleExport = () => {
-    // simple CSV export of visible range
     if (!pageDays.length) return;
 
     const headers = ["Metric / Date", ...pageDays.map((d) => d.date)];
@@ -306,8 +310,8 @@ export default function Stats() {
         <div>
           <h1 className="stats-title">Stats</h1>
           <p className="stats-subtitle">
-            Slide across days to compare calories, activity, and meals
-            in one matrix.
+            Slide across days on desktop, or browse daily summary cards
+            on mobile.
           </p>
         </div>
 
@@ -363,7 +367,7 @@ export default function Stats() {
         </div>
       </section>
 
-      {/* Matrix table card */}
+      {/* Matrix + mobile cards */}
       <section className="stats-table-card">
         {/* Controls */}
         <div className="stats-controls">
@@ -385,7 +389,6 @@ export default function Stats() {
           </div>
 
           <div className="stats-controls-right">
-            {/* Date filter */}
             <div className="custom-date-picker">
               <CalendarIcon
                 size={16}
@@ -424,7 +427,6 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* Matrix body */}
         {!hasData ? (
           <div className="stats-empty-matrix">
             No stats yet. Log a few days of meals and workouts to see
@@ -432,13 +434,12 @@ export default function Stats() {
           </div>
         ) : (
           <>
-            <div className="stats-table-wrapper">
+            {/* Desktop matrix */}
+            <div className="stats-table-wrapper stats-table-desktop">
               <table className="stats-unified-table">
                 <thead>
                   <tr>
-                    <th className="header-corner-1 col-category">
-                      {/* category column header */}
-                    </th>
+                    <th className="header-corner-1 col-category" />
                     <th className="header-corner-2 col-metric">
                       Metric
                     </th>
@@ -514,7 +515,67 @@ export default function Stats() {
               </table>
             </div>
 
-            {/* Pagination footer */}
+            {/* Mobile day cards */}
+            <div className="stats-cards-mobile">
+              {pageDays.map((day) => (
+                <div className="stats-day-card" key={day.date}>
+                  <div className="stats-day-card-header">
+                    <div className="stats-day-date">
+                      {formatFullDate(day.date)}
+                    </div>
+                    <div className="stats-day-intake">
+                      {fmtNum(day.total)} kcal
+                      <span> intake</span>
+                    </div>
+                  </div>
+
+                  {groups.map((group) => (
+                    <div
+                      key={group.id}
+                      className={`stats-day-group ${group.colorClass}`}
+                    >
+                      <div className="stats-day-group-title">
+                        {group.label}
+                      </div>
+                      <div className="stats-day-group-body">
+                        {group.rows.map((row) => {
+                          const rawValue = day[row.field];
+                          const value = formatCellValue(
+                            row,
+                            rawValue
+                          );
+                          const colorClass = row.color
+                            ? row.color(rawValue)
+                            : "";
+                          const tooltip =
+                            row.tooltipField &&
+                            day[row.tooltipField];
+
+                          return (
+                            <div
+                              key={row.key}
+                              className="stats-day-row"
+                            >
+                              <div className="stats-day-row-label">
+                                {row.label}
+                              </div>
+                              <div
+                                className={`stats-day-row-value ${colorClass}`}
+                                title={tooltip || ""}
+                              >
+                                {value}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination footer (shared) */}
             <div className="stats-pagination">
               <div className="pagination-info">
                 {totalColumns === 0 ? (
@@ -523,8 +584,7 @@ export default function Stats() {
                   <>
                     Showing{" "}
                     <strong>
-                      {startIdx + 1} –{" "}
-                      {Math.min(endIdx, totalColumns)}
+                      {startIdx + 1}–{Math.min(endIdx, totalColumns)}
                     </strong>{" "}
                     of <strong>{totalColumns}</strong> days
                   </>
