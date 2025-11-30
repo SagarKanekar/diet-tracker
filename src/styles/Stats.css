@@ -4,8 +4,9 @@
 .stats-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.25rem 0 0.75rem;
+  gap: 0.75rem; /* 🔧 further reduced gap for ultra-tight mobile stack */
+  padding: 0.75rem 0 0.25rem; /* 🔧 minimal padding */
+  overflow-x: hidden; /* 🔧 prevent any page-level horizontal scroll */
 }
 
 /* Header */
@@ -14,8 +15,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.5rem;
+  gap: 0.75rem;
+  padding-bottom: 0.25rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.35);
 }
 
@@ -47,7 +48,7 @@
 
 /* Summary cards */
 .stats-summary-card {
-  padding: 1.25rem;
+  padding: 1rem;
   background: var(--surface);
   border-radius: var(--card-radius);
   box-shadow: var(--shadow-soft);
@@ -56,12 +57,12 @@
 
 .stats-summary-grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .stats-summary-item {
-  padding: 1rem;
+  padding: 0.75rem;
   border-radius: 12px;
   background: var(--surface-muted);
   border: 1px solid rgba(226, 232, 240, 0.8);
@@ -98,11 +99,12 @@
   border: 1px solid var(--border-card);
   display: flex;
   flex-direction: column;
+  flex: 1; /* 🔧 grow to fill remaining space */
 }
 
 /* Controls */
 .stats-controls {
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -242,7 +244,7 @@
   max-width: 32px;
   padding: 0 !important;
   text-align: center;
-  border-right: none; /* 🔧 remove the “gap” line */
+  border-right: none !important; /* 🔧 remove the “gap” line */
 }
 
 .col-metric {
@@ -253,7 +255,7 @@
   font-weight: 500;
   color: #334155;
   background: #ffffff;
-  box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.15);
+  box-shadow: 2px 0 4px -2px rgba(15, 23, 42, 0.1); /* 🔧 reduced shadow for tighter feel */
   min-width: 110px;
 }
 
@@ -307,7 +309,7 @@
   left: 0;
   z-index: 40;
   background: #f8fafc;
-  border-right: none; /* keep header flush with METRIC column */
+  border-right: none !important; /* keep header flush with METRIC column */
 }
 
 .header-corner-2 {
@@ -315,8 +317,14 @@
   left: 32px;
   z-index: 40;
   background: #f8fafc;
-  box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.15);
+  box-shadow: 2px 0 4px -2px rgba(15, 23, 42, 0.1); /* 🔧 reduced shadow for tighter feel */
   border-right: 2px solid #e2e8f0;
+}
+
+/* Ensure category strip and metric column visually touch */
+.stats-unified-table .col-category,
+.stats-unified-table .header-corner-1 {
+  border-right: none !important;
 }
 
 /* Date headers */
@@ -397,14 +405,62 @@
 
 /* Mobile tweaks */
 @media (max-width: 640px) {
+  .stats-page {
+    gap: 0.5rem; /* 🔧 ultra-tight vertical spacing */
+    padding: 0.5rem 0 0; /* 🔧 near-zero top/bottom padding */
+  }
+
   .stats-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.25rem; /* 🔧 minimal header gap */
+    padding-bottom: 0.125rem; /* 🔧 ultra-thin border */
+  }
+
+  .stats-title {
+    font-size: var(--text-lg); /* 🔧 slightly smaller title if var(--text-xl) is too big; adjust if needed */
+  }
+
+  .stats-subtitle {
+    font-size: var(--text-xs); /* 🔧 smaller subtitle */
+    margin: 0; /* 🔧 no bottom margin */
+  }
+
+  .stats-header-pill {
+    align-self: flex-start; /* 🔧 left-align pill on mobile */
+    padding: 0.25rem 0.75rem; /* 🔧 tighter pill */
+    font-size: 0.75rem; /* 🔧 smaller pill text */
+  }
+
+  .stats-summary-card {
+    padding: 0.75rem; /* 🔧 even tighter card padding */
+  }
+
+  .stats-summary-grid {
+    grid-template-columns: 1fr; /* 🔧 single column stack */
+    gap: 0.5rem; /* 🔧 minimal grid gap */
+  }
+
+  .stats-summary-item {
+    padding: 0.5rem; /* 🔧 ultra-tight item padding */
+  }
+
+  .stats-summary-value {
+    font-size: 1.25rem; /* 🔧 reduced value size for mobile */
+    line-height: 1.1; /* 🔧 tighter line height */
+  }
+
+  .stats-summary-sub {
+    font-size: 0.7rem; /* 🔧 smaller sub text */
+    margin-top: 0.125rem; /* 🔧 minimal top margin */
   }
 
   .stats-controls {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row; /* 🔧 horizontal for date + export */
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem; /* 🔧 tighter padding */
+    gap: 0.25rem; /* 🔧 minimal gap */
   }
 
   .stats-controls-left {
@@ -412,30 +468,72 @@
   }
 
   .stats-controls-right {
-    width: 100%;
-    justify-content: space-between;
+    width: auto; /* 🔧 natural sizing */
+    justify-content: flex-end;
+    gap: 0.25rem; /* 🔧 tight gap between date and export */
+    flex: 1;
   }
 
   .custom-date-picker {
-    width: 100%;
+    flex: 1; /* 🔧 grow to fill */
+    max-width: calc(100% - 80px); /* 🔧 tighter room for export button */
+    padding: 0 0.5rem; /* 🔧 slimmer padding */
+    height: 28px; /* 🔧 shorter height */
   }
 
+  .stats-export-btn {
+    padding: 0.25rem 0.5rem; /* 🔧 smaller export button */
+    font-size: 0.75rem; /* 🔧 smaller text */
+  }
+
+  /* 🔧 Make table “wider” so only ~3 date columns fit at once */
   .stats-unified-table {
-    min-width: 580px;
+    min-width: 450px;   /* 🔧 further reduced for perfect ~375px fit: sticky ~118px + 3*110px */
+    font-size: 0.8rem; /* 🔧 slightly smaller table font for mobile */
+  }
+
+  .stats-unified-table th,
+  .stats-unified-table td {
+    height: 36px; /* 🔧 shorter row height */
+    padding: 0.25rem 0.5rem; /* 🔧 tighter cell padding */
   }
 
   .col-category {
-    width: 28px;
+    width: 26px; /* 🔧 slimmer category */
   }
 
   .col-metric {
-    left: 28px;
-    min-width: 95px;
-    font-size: 0.78rem;
+    left: 26px;
+    min-width: 85px; /* 🔧 tighter metric column */
+    font-size: 0.75rem; /* 🔧 smaller metric text */
   }
 
   .header-corner-2 {
-    left: 28px;
+    left: 26px;
+  }
+
+  /* 🔧 make each date column wide enough */
+  .date-header-cell {
+    min-width: 110px; /* 🔧 slimmer dates for ~3 fit */
+  }
+
+  /* Data cells in date columns – even tighter padding */
+  .stats-unified-table th.date-header-cell,
+  .stats-unified-table td.data-cell:not(.col-metric):not(.col-category) {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem; /* 🔧 ultra-slim scrollable columns */
+  }
+
+  .date-weekday {
+    font-size: 0.6rem; /* 🔧 smaller weekday */
+  }
+
+  .date-full {
+    font-size: 0.8rem; /* 🔧 smaller full date */
+  }
+
+  .data-cell {
+    font-size: 0.8rem; /* 🔧 smaller data text */
   }
 
   .stats-table-desktop {
@@ -448,6 +546,12 @@
 
   .stats-pagination {
     display: none;          /* no Prev/Next on mobile */
+  }
+
+  .stats-table-wrapper {
+    /* 🔧 ensure no extra margins/padding */
+    margin: 0;
+    padding: 0;
   }
 }
 
