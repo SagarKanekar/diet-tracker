@@ -242,7 +242,7 @@
   max-width: 32px;
   padding: 0 !important;
   text-align: center;
-  border-right: 1px solid rgba(0, 0, 0, 0.05);
+  border-right: none; /* 🔧 remove the “gap” line */
 }
 
 .col-metric {
@@ -307,6 +307,7 @@
   left: 0;
   z-index: 40;
   background: #f8fafc;
+  border-right: none; /* keep header flush with METRIC column */
 }
 
 .header-corner-2 {
