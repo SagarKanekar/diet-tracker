@@ -115,6 +115,13 @@ export default function DayLog() {
   const [editingMealId, setEditingMealId] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState("");
 
+  // NEW: which meal tab is active
+  const [activeMealId, setActiveMealId] = useState("lunch");
+
+  // Active meal meta
+  const activeMealDef =
+    MEAL_TYPES.find((m) => m.id === activeMealId) || MEAL_TYPES[0];
+
   const allFoods = state.foodItems || [];
   const favouriteFoods = allFoods.filter((f) => f.isFavourite);
 
@@ -178,6 +185,12 @@ export default function DayLog() {
     });
     return grouped;
   }, [dayLog.meals]);
+
+  // Active meal kcal
+  const activeMealKcal = (mealsByType[activeMealId] || []).reduce(
+    (sum, m) => sum + (m.totalKcal ?? 0),
+    0
+  );
 
   const totalIntakeKcal = (dayLog.meals || []).reduce((sum, m) => sum + (m.totalKcal ?? 0), 0);
   const netDayKcal = dailyTarget > 0 ? (dailyTarget * (dayLog.activityFactor ?? 1.2)) + effectiveWorkout - totalIntakeKcal : 0;
@@ -287,110 +300,244 @@ export default function DayLog() {
         />
       </section>
 
-      {/* 5. Meal Sections */}
-      {MEAL_TYPES.map((meal) => {
-        const entries = mealsByType[meal.id] || [];
-        const sectionKcal = entries.reduce((s, m) => s + m.totalKcal, 0);
+      {/* 5. Meal Sections – tabbed */}
+      <section className="meal-tabs-card">
+        {/* Main header: active meal name + kcal badge */}
+        <div className="meal-main-header">
+          <div className="meal-title">
+            {activeMealDef.icon} {activeMealDef.label}
+          </div>
+          <span className="meal-kcal-badge">
+            {activeMealKcal} kcal
+          </span>
+        </div>
 
-        return (
-          <section key={meal.id} className="meal-section">
-            <div className="meal-header">
-              <div className="meal-title">{meal.icon} {meal.label}</div>
-              <span className="meal-kcal-badge">{sectionKcal} kcal</span>
-            </div>
+        {/* Tab header row */}
+        <div className="meal-tabs-header">
+          {MEAL_TYPES.map((meal) => {
+            const entries = mealsByType[meal.id] || [];
+            const sectionKcal = entries.reduce(
+              (s, m) => s + (m.totalKcal ?? 0),
+              0
+            );
+            const isActive = activeMealId === meal.id;
 
-            {/* Quick Add Chips */}
-            {favouriteFoods.length > 0 && (
-              <div className="quick-add-row">
-                <span className="quick-add-label">Quick Add:</span>
-                {favouriteFoods.map(f => (
-                  <button key={f.id} type="button" className="chip-btn" onClick={() => handleQuickAddFavourite(meal.id, f)}>
-                    + {f.name}
-                  </button>
-                ))}
-              </div>
-            )}
+            return (
+              <button
+                key={meal.id}
+                type="button"
+                className={`meal-tab-pill ${isActive ? "is-active" : ""}`}
+                onClick={() => setActiveMealId(meal.id)}
+              >
+                <span className="meal-tab-main">
+                  {meal.icon}
+                  <span className="meal-tab-label-text">{meal.label}</span>
+                </span>
+                {/* Optional: keep small per-meal kcal in pill, or drop if you want cleaner tabs */}
+                <span className="meal-tab-kcal">{sectionKcal} kcal</span>
+              </button>
+            );
+          })}
+        </div>
 
-            {/* Table */}
-            {entries.length > 0 ? (
-              <div className="table-responsive">
-                <table className="data-table meal-table">
-                  <thead>
-                    <tr>
-                      <th className="text-left">Food</th>
-                      <th className="text-right">Qty</th>
-                      <th className="text-left">Unit</th>
-                      <th className="text-right">Kcal</th>
-                      <th className="text-right">Total</th>
-                      <th className="text-left">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entries.map(m => {
-                      const isEd = editingMealId === m.id;
-                      return (
-                        <tr key={m.id}>
-                          <td>{m.foodNameSnapshot}</td>
-                          <td className="text-right">
-                            {isEd ? (
-                              <input type="number" className="input-small text-right" value={editingQuantity} 
-                                onChange={e => setEditingQuantity(e.target.value)} step="0.25" />
-                            ) : m.quantity}
-                          </td>
-                          <td>{m.unitLabelSnapshot}</td>
-                          <td className="text-right">{m.kcalPerUnitSnapshot}</td>
-                          <td className="text-right"><strong>{m.totalKcal}</strong></td>
-                          <td className="btn-row">
-                            {isEd ? (
-                              <>
-                                <button className="btn-primary btn-small" onClick={() => handleSaveEditMeal(m)}><Save size={14}/></button>
-                                <button className="btn-secondary btn-small" onClick={() => {setEditingMealId(null); setEditingQuantity("");}}><X size={14}/></button>
-                              </>
-                            ) : (
-                              <>
-                                <button className="btn-secondary btn-small" onClick={() => { setEditingMealId(m.id); setEditingQuantity(String(m.quantity)); }}>Edit</button>
-                                <button className="btn-danger btn-small" onClick={() => dispatch({ type: "DELETE_MEAL_ENTRY", payload: { date: selectedDate, mealId: m.id } })}>✕</button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="muted" style={{textAlign:'center', padding:'1rem'}}>No items logged yet.</div>
-            )}
+        {/* Active meal content */}
+        {MEAL_TYPES.map((meal) => {
+          const entries = mealsByType[meal.id] || [];
 
-            {/* Add Form */}
-            <form onSubmit={(e) => handleAddMeal(e, meal.id)} className="add-meal-container">
-              <div className="form-row-compact">
-                <div style={{ flex: 2 }}>
-                  <FoodAutocomplete 
-                    foods={allFoods} 
-                    value={newMealFoodSearch[meal.id]}
-                    onChangeText={txt => { setNewMealFoodSearch(p => ({...p, [meal.id]: txt})); setNewMealFoodId(p => ({...p, [meal.id]: null})); }}
-                    onSelectFood={f => { setNewMealFoodSearch(p => ({...p, [meal.id]: f.name})); setNewMealFoodId(p => ({...p, [meal.id]: f.id})); }}
-                    placeholder="Search food..."
-                  />
-                </div>
-                <div style={{ width: '100px' }}>
-                  <input type="number" className="input-full" placeholder="Qty" step="0.25"
-                    value={newQuantity[meal.id]} onChange={e => setNewQuantity(p => ({...p, [meal.id]: e.target.value}))} 
-                  />
-                </div>
-                <button type="submit" className="btn-primary"><Plus size={18}/></button>
-              </div>
-              {newMealFoodId[meal.id] && (
-                <div style={{fontSize:'0.85rem', color:'#718096', marginTop:'0.5rem'}}>
-                  Unit: {allFoods.find(f => f.id === newMealFoodId[meal.id])?.unitLabel}
+          if (meal.id !== activeMealId) return null; // only show active table
+
+          return (
+            <div key={meal.id} className="meal-tab-content">
+              {/* Quick Add Chips */}
+              {favouriteFoods.length > 0 && (
+                <div className="quick-add-row">
+                  <span className="quick-add-label">Quick Add:</span>
+                  {favouriteFoods.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className="chip-btn"
+                      onClick={() => handleQuickAddFavourite(meal.id, f)}
+                    >
+                      + {f.name}
+                    </button>
+                  ))}
                 </div>
               )}
-            </form>
-          </section>
-        );
-      })}
+
+              {/* Table */}
+              {entries.length > 0 ? (
+                <div className="table-responsive">
+                  <table className="data-table meal-table">
+                    <thead>
+                      <tr>
+                        <th className="text-left">Food</th>
+                        <th className="text-right">Qty</th>
+                        <th className="text-left">Unit</th>
+                        <th className="text-right">Kcal</th>
+                        <th className="text-right">Total</th>
+                        <th className="text-left">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entries.map((m) => {
+                        const isEd = editingMealId === m.id;
+                        return (
+                          <tr key={m.id}>
+                            <td className="meal-col-food">
+                              {m.foodNameSnapshot}
+                            </td>
+                            <td className="text-right">
+                              {isEd ? (
+                                <input
+                                  type="number"
+                                  className="input-small text-right"
+                                  value={editingQuantity}
+                                  onChange={(e) =>
+                                    setEditingQuantity(e.target.value)
+                                  }
+                                  step="0.25"
+                                />
+                              ) : (
+                                m.quantity
+                              )}
+                            </td>
+                            <td>{m.unitLabelSnapshot}</td>
+                            <td className="text-right">
+                              {m.kcalPerUnitSnapshot}
+                            </td>
+                            <td className="text-right">
+                              <strong>{m.totalKcal}</strong>
+                            </td>
+                            <td className="btn-row">
+                              {isEd ? (
+                                <>
+                                  <button
+                                    className="btn-primary btn-small"
+                                    onClick={() => handleSaveEditMeal(m)}
+                                  >
+                                    <Save size={14} />
+                                  </button>
+                                  <button
+                                    className="btn-secondary btn-small"
+                                    onClick={() => {
+                                      setEditingMealId(null);
+                                      setEditingQuantity("");
+                                    }}
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className="btn-secondary btn-small"
+                                    onClick={() => {
+                                      setEditingMealId(m.id);
+                                      setEditingQuantity(String(m.quantity));
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="btn-danger btn-small"
+                                    onClick={() =>
+                                      dispatch({
+                                        type: "DELETE_MEAL_ENTRY",
+                                        payload: {
+                                          date: selectedDate,
+                                          mealId: m.id,
+                                        },
+                                      })
+                                    }
+                                  >
+                                    ✕
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div
+                  className="muted"
+                  style={{ textAlign: "center", padding: "1rem" }}
+                >
+                  No items logged yet.
+                </div>
+              )}
+
+              {/* Add Form */}
+              <form
+                onSubmit={(e) => handleAddMeal(e, meal.id)}
+                className="add-meal-container"
+              >
+                <div className="form-row-compact">
+                  <div style={{ flex: 2 }}>
+                    <FoodAutocomplete
+                      foods={allFoods}
+                      value={newMealFoodSearch[meal.id]}
+                      onChangeText={(txt) => {
+                        setNewMealFoodSearch((p) => ({ ...p, [meal.id]: txt }));
+                        setNewMealFoodId((p) => ({ ...p, [meal.id]: null }));
+                      }}
+                      onSelectFood={(f) => {
+                        setNewMealFoodSearch((p) => ({
+                          ...p,
+                          [meal.id]: f.name,
+                        }));
+                        setNewMealFoodId((p) => ({
+                          ...p,
+                          [meal.id]: f.id,
+                        }));
+                      }}
+                      placeholder="Search food..."
+                    />
+                  </div>
+                  <div style={{ width: "100px" }}>
+                    <input
+                      type="number"
+                      className="input-full"
+                      placeholder="Qty"
+                      step="0.25"
+                      value={newQuantity[meal.id]}
+                      onChange={(e) =>
+                        setNewQuantity((p) => ({
+                          ...p,
+                          [meal.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary">
+                    <Plus size={18} />
+                  </button>
+                </div>
+                {newMealFoodId[meal.id] && (
+                  <div
+                    style={{
+                      fontSize: "0.85rem",
+                      color: "#718096",
+                      marginTop: "0.5rem",
+                    }}
+                  >
+                    Unit:{" "}
+                    {
+                      allFoods.find(
+                        (f) => f.id === newMealFoodId[meal.id]
+                      )?.unitLabel
+                    }
+                  </div>
+                )}
+              </form>
+            </div>
+          );
+        })}
+      </section>
     </div>
   );
 }

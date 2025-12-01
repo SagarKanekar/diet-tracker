@@ -41,6 +41,102 @@ export default function Stats() {
     direction: null,      // "asc" | "desc" | null
   });
 
+  // ---------- Group + row config ----------
+  const groups = [
+    {
+      id: "nutrition",
+      label: "Nutrition",
+      colorClass: "cat-nutrition",
+      rows: [
+        { key: "target", label: "Target", field: "tdee", unit: "kcal" },
+        {
+          key: "total",
+          label: "Total intake",
+          field: "total",
+          unit: "kcal",
+        },
+        {
+          key: "deficit",
+          label: "Deficit",
+          field: "deficit",
+          unit: "kcal",
+          prefix: (v) => (v > 0 ? "+" : ""),
+          color: (v) => (v >= 0 ? "text-green" : "text-red"),
+        },
+        {
+          key: "estDelta",
+          label: "Est. Δ weight",
+          field: "estDeltaKg",
+          unit: "kg",
+          formatter: (v) =>
+            v === null || v === undefined ? "-" : v.toFixed(2),
+          prefix: (v) => (v > 0 ? "+" : ""),
+          color: (v) => (v <= 0 ? "text-green" : "text-red"),
+        },
+      ],
+    },
+    {
+      id: "activity",
+      label: "Activity",
+      colorClass: "cat-activity",
+      rows: [
+        {
+          key: "activityFactor",
+          label: "Activity factor",
+          field: "activityFactor",
+          formatter: (v) =>
+            v === null || v === undefined ? "-" : v.toFixed(2),
+        },
+        {
+          key: "workout",
+          label: "Workout burn",
+          field: "workoutCalories",
+          unit: "kcal",
+        },
+        {
+          key: "intensity",
+          label: "Intensity factor",
+          field: "intensityDisplay",
+          formatter: (v) => v ?? "-",
+        },
+      ],
+    },
+    {
+      id: "meals",
+      label: "Meals",
+      colorClass: "cat-meals",
+      rows: [
+        {
+          key: "lunch",
+          label: "Lunch",
+          field: "lunch",
+          unit: "kcal",
+          tooltipField: "lunchText",
+        },
+        {
+          key: "dinner",
+          label: "Dinner",
+          field: "dinner",
+          unit: "kcal",
+          tooltipField: "dinnerText",
+        },
+        {
+          key: "extras",
+          label: "Extras",
+          field: "extras",
+          unit: "kcal",
+          tooltipField: "extrasText",
+        },
+      ],
+    },
+  ];
+
+  // Flattened rows for easy lookup when sorting
+  const allMetricRows = useMemo(
+    () => groups.flatMap((g) => g.rows.map((r) => ({ ...r, groupId: g.id }))),
+    [groups]
+  );
+
   // ---------- Build per-day stats ----------
   const allDays = useMemo(() => {
     const entries = Object.values(dayLogs || {});
@@ -186,102 +282,6 @@ export default function Stats() {
       workoutDays,
     };
   }, [allDays]);
-
-  // ---------- Group + row config ----------
-  const groups = [
-    {
-      id: "nutrition",
-      label: "Nutrition",
-      colorClass: "cat-nutrition",
-      rows: [
-        { key: "target", label: "Target", field: "tdee", unit: "kcal" },
-        {
-          key: "total",
-          label: "Total intake",
-          field: "total",
-          unit: "kcal",
-        },
-        {
-          key: "deficit",
-          label: "Deficit",
-          field: "deficit",
-          unit: "kcal",
-          prefix: (v) => (v > 0 ? "+" : ""),
-          color: (v) => (v >= 0 ? "text-green" : "text-red"),
-        },
-        {
-          key: "estDelta",
-          label: "Est. Δ weight",
-          field: "estDeltaKg",
-          unit: "kg",
-          formatter: (v) =>
-            v === null || v === undefined ? "-" : v.toFixed(2),
-          prefix: (v) => (v > 0 ? "+" : ""),
-          color: (v) => (v <= 0 ? "text-green" : "text-red"),
-        },
-      ],
-    },
-    {
-      id: "activity",
-      label: "Activity",
-      colorClass: "cat-activity",
-      rows: [
-        {
-          key: "activityFactor",
-          label: "Activity factor",
-          field: "activityFactor",
-          formatter: (v) =>
-            v === null || v === undefined ? "-" : v.toFixed(2),
-        },
-        {
-          key: "workout",
-          label: "Workout burn",
-          field: "workoutCalories",
-          unit: "kcal",
-        },
-        {
-          key: "intensity",
-          label: "Intensity factor",
-          field: "intensityDisplay",
-          formatter: (v) => v ?? "-",
-        },
-      ],
-    },
-    {
-      id: "meals",
-      label: "Meals",
-      colorClass: "cat-meals",
-      rows: [
-        {
-          key: "lunch",
-          label: "Lunch",
-          field: "lunch",
-          unit: "kcal",
-          tooltipField: "lunchText",
-        },
-        {
-          key: "dinner",
-          label: "Dinner",
-          field: "dinner",
-          unit: "kcal",
-          tooltipField: "dinnerText",
-        },
-        {
-          key: "extras",
-          label: "Extras",
-          field: "extras",
-          unit: "kcal",
-          tooltipField: "extrasText",
-        },
-      ],
-    },
-  ];
-
-  // Flattened rows for easy lookup when sorting
-  const allMetricRows = useMemo(
-    () => groups.flatMap((g) => g.rows.map((r) => ({ ...r, groupId: g.id }))),
-    [groups]
-  );
 
   const formatCellValue = (rowConfig, rawValue) => {
     if (rawValue === null || rawValue === undefined || rawValue === "") {
