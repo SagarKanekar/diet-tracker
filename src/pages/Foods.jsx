@@ -1,4 +1,3 @@
-// src/pages/Foods.jsx
 import React, { useState, useMemo } from "react";
 import { useAppState, DEFAULT_FOOD_CATEGORIES } from "../context/AppStateContext.jsx";
 import {
@@ -12,9 +11,7 @@ import {
   UtensilsCrossed,
   Settings2,
 } from "lucide-react";
-
 import "../styles/Foods.css";
-
 function prettyLabel(key) {
   if (!key) return "";
   return key
@@ -23,11 +20,9 @@ function prettyLabel(key) {
     .trim()
     .replace(/\b\w/g, (ch) => ch.toUpperCase());
 }
-
 export default function Foods() {
   const { state, dispatch } = useAppState();
-
-  // ---------- Local UI State ----------
+  // ---------- UI State ----------
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -36,7 +31,6 @@ export default function Foods() {
     kcalPerUnit: "",
     isFavourite: false,
   });
-
   const [newFood, setNewFood] = useState({
     name: "",
     category: "home",
@@ -44,25 +38,19 @@ export default function Foods() {
     kcalPerUnit: "",
     isFavourite: false,
   });
-
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-
-  // ---------- Categories from global state ----------
+  // ---------- Categories ----------
   const userCategories =
     (state.foodCategories && state.foodCategories.length
       ? state.foodCategories
       : DEFAULT_FOOD_CATEGORIES) || [];
-
   const allFoods = state.foodItems || [];
   const unassignedCount = allFoods.filter(
     (f) => !f.category || f.category === ""
   ).length;
-
-  // Build filter chips
   const filterOptions = useMemo(
     () => [
       { key: "all", label: "All" },
@@ -74,10 +62,7 @@ export default function Foods() {
     ],
     [userCategories]
   );
-
-  // ---------- Filtering ----------
   let filteredFoods = allFoods;
-
   if (categoryFilter === "null") {
     filteredFoods = filteredFoods.filter(
       (f) => !f.category || f.category === ""
@@ -87,41 +72,23 @@ export default function Foods() {
       (f) => (f.category || "home") === categoryFilter
     );
   }
-
   const query = searchQuery.trim().toLowerCase();
   if (query) {
     filteredFoods = filteredFoods.filter((f) =>
       f.name.toLowerCase().includes(query)
     );
   }
-
   filteredFoods = [...filteredFoods].sort((a, b) =>
     a.name.localeCompare(b.name)
   );
-
-  // ---------- Food CRUD helpers ----------
-  const startEdit = (food) => {
-    setEditingId(food.id);
-    setEditForm({
-      name: food.name,
-      category: food.category || "home",
-      unitLabel: food.unitLabel || "serving",
-      kcalPerUnit: String(food.kcalPerUnit ?? ""),
-      isFavourite: !!food.isFavourite,
-    });
-  };
-
+  // ---------- CRUD helpers ----------
+  const startEdit = (food) => { /* unchanged */ setEditingId(food.id); setEditForm({ ...food, kcalPerUnit: String(food.kcalPerUnit ?? "") }); };
   const cancelEdit = () => setEditingId(null);
-
-  const updateEditForm = (key, value) => {
-    setEditForm((prev) => ({ ...prev, [key]: value }));
-  };
-
+  const updateEditForm = (key, value) => setEditForm((prev) => ({ ...prev, [key]: value }));
   const saveEdit = () => {
     if (!editingId) return;
     const name = editForm.name.trim();
     if (!name) return;
-
     dispatch({
       type: "UPSERT_FOOD_ITEM",
       payload: {
@@ -135,7 +102,6 @@ export default function Foods() {
     });
     setEditingId(null);
   };
-
   const deleteFood = (foodId) => {
     if (
       window.confirm("Are you sure you want to delete this food item?")
@@ -146,12 +112,10 @@ export default function Foods() {
       });
     }
   };
-
   const handleAddNew = (e) => {
     e.preventDefault();
     const name = newFood.name.trim();
     if (!name) return;
-
     dispatch({
       type: "UPSERT_FOOD_ITEM",
       payload: {
@@ -163,7 +127,6 @@ export default function Foods() {
         isFavourite: !!newFood.isFavourite,
       },
     });
-
     setNewFood({
       name: "",
       category: "home",
@@ -172,67 +135,52 @@ export default function Foods() {
       isFavourite: false,
     });
   };
-
   // ---------- Category manager helpers ----------
-  const openCategoryModal = () => {
-    setCategoryModalOpen(true);
-    setNewCategoryName("");
-  };
-
-  const closeCategoryModal = () => {
-    setCategoryModalOpen(false);
-    setNewCategoryName("");
-  };
-
+  const openCategoryModal = () => { setCategoryModalOpen(true); setNewCategoryName(""); };
+  const closeCategoryModal = () => { setCategoryModalOpen(false); setNewCategoryName(""); };
   const handleAddCategory = () => {
     const name = newCategoryName.trim();
     if (!name) return;
     dispatch({ type: "ADD_FOOD_CATEGORY", payload: name });
     setNewCategoryName("");
   };
-
   const handleRenameCategory = (oldName) => {
     const currentLabel = prettyLabel(oldName);
     const next = window.prompt("Rename category", currentLabel);
     if (!next) return;
     const trimmed = next.trim();
     if (!trimmed) return;
-
     dispatch({
       type: "RENAME_FOOD_CATEGORY",
       payload: { oldName, newName: trimmed },
     });
   };
-
   const handleDeleteCategory = (name) => {
     if (
       !window.confirm(
-        `Delete category "${prettyLabel(
-          name
-        )}"?\n\nFoods in this category will become unassigned.`
+        `Delete category "${prettyLabel(name)}"?\n\nFoods in this category will become unassigned.`
       )
-    ) {
-      return;
-    }
-
+    ) return;
     dispatch({
       type: "DELETE_FOOD_CATEGORY",
       payload: { name },
     });
-
-    // If current filter is this category, bounce back to "all"
-    if (categoryFilter === name) {
-      setCategoryFilter("all");
-    }
+    if (categoryFilter === name) setCategoryFilter("all");
   };
-
   return (
-    <div className="page foods-page">
+    <div className="page foods-page mobile-padding">
       {/* Header */}
       <header className="foods-header">
         <div className="foods-header-left">
-          <h1 className="page-title">
-            <UtensilsCrossed size={22} style={{ marginRight: 8 }} />
+          <h1 className="page-title foods-title">
+            <UtensilsCrossed
+              size={22}
+              style={{
+                marginRight: 4, // tighter than before
+                color: "var(--primary)",
+                verticalAlign: "middle",
+              }}
+            />
             Foods Database
           </h1>
           <p className="page-subtitle">
@@ -245,38 +193,21 @@ export default function Foods() {
           </span>
         </div>
       </header>
-
       {/* Add New Item card */}
       <section className="foods-section">
         <div className="foods-card add-food-card">
           <div className="card-header">
             <h2 className="card-title">Add New Item</h2>
           </div>
-
           <form className="add-form" onSubmit={handleAddNew}>
             <div className="add-form-row">
               <label className="field-label">
                 Name
-                <input
-                  type="text"
-                  value={newFood.name}
-                  onChange={(e) =>
-                    setNewFood({ ...newFood, name: e.target.value })
-                  }
-                  className="foods-input"
-                  required
-                />
+                <input type="text" value={newFood.name} onChange={e => setNewFood({ ...newFood, name: e.target.value })} className="foods-input" required />
               </label>
-
               <label className="field-label">
                 Category
-                <select
-                  value={newFood.category}
-                  onChange={(e) =>
-                    setNewFood({ ...newFood, category: e.target.value })
-                  }
-                  className="foods-select"
-                >
+                <select value={newFood.category} onChange={e => setNewFood({ ...newFood, category: e.target.value })} className="foods-select">
                   {userCategories.map((key) => (
                     <option key={key} value={key}>
                       {prettyLabel(key)}
@@ -284,52 +215,23 @@ export default function Foods() {
                   ))}
                 </select>
               </label>
-
               <label className="field-label">
                 Unit
-                <input
-                  type="text"
-                  value={newFood.unitLabel}
-                  onChange={(e) =>
-                    setNewFood({ ...newFood, unitLabel: e.target.value })
-                  }
-                  className="foods-input"
-                  required
-                />
+                <input type="text" value={newFood.unitLabel} onChange={e => setNewFood({ ...newFood, unitLabel: e.target.value })} className="foods-input" required />
               </label>
-
               <label className="field-label">
                 Kcal
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={newFood.kcalPerUnit}
-                  onChange={(e) =>
-                    setNewFood({ ...newFood, kcalPerUnit: e.target.value })
-                  }
-                  className="foods-input text-right"
-                  required
-                />
+                <input type="number" min="0" step="1" value={newFood.kcalPerUnit} onChange={e => setNewFood({ ...newFood, kcalPerUnit: e.target.value })} className="foods-input text-right" required />
               </label>
             </div>
-
-            <div className="add-form-footer">
-              <label className="checkbox-inline">
-                <input
-                  type="checkbox"
-                  checked={newFood.isFavourite}
-                  onChange={(e) =>
-                    setNewFood({
-                      ...newFood,
-                      isFavourite: e.target.checked,
-                    })
-                  }
-                />
-                <span style={{ marginLeft: 6 }}>Top Pick</span>
-              </label>
-
-              <button type="submit" className="btn-primary">
+            <div className="add-form-footer-row">
+              <div className="checkbox-col">
+                <label className="checkbox-inline">
+                  <input type="checkbox" checked={newFood.isFavourite} onChange={e => setNewFood({ ...newFood, isFavourite: e.target.checked })} />
+                  <span style={{ marginLeft: 6 }}>Top Pick</span>
+                </label>
+              </div>
+              <button type="submit" className="btn-primary add-food-btn">
                 <Plus size={16} />
                 <span>Add Food</span>
               </button>
@@ -337,24 +239,16 @@ export default function Foods() {
           </form>
         </div>
       </section>
-
       {/* Search + Filters + Table */}
       <section className="foods-section">
         <div className="foods-card">
           {/* Search row */}
-          <div className="foods-search-row">
+          <div className="foods-search-row search-input-row">
             <div className="search-input-wrapper">
               <Search size={16} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search foods..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
+              <input type="text" placeholder="Search foods..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="search-input" />
             </div>
           </div>
-
           {/* Filter chips */}
           <div className="foods-filter-row">
             <div className="filter-chip-group">
@@ -362,7 +256,6 @@ export default function Foods() {
                 const active = categoryFilter === btn.key;
                 const isNull = btn.key === "null";
                 const showBadge = isNull && unassignedCount > 0;
-
                 return (
                   <button
                     key={btn.key}
@@ -382,7 +275,6 @@ export default function Foods() {
                 );
               })}
             </div>
-
             <button
               type="button"
               className="filter-chip filter-chip-edit"
@@ -393,7 +285,6 @@ export default function Foods() {
               <span className="hide-on-very-small">Edit</span>
             </button>
           </div>
-
           {/* Table */}
           {filteredFoods.length === 0 ? (
             <div className="empty-state">
@@ -415,18 +306,14 @@ export default function Foods() {
                 <tbody>
                   {filteredFoods.map((food) => {
                     const isEditing = editingId === food.id;
-
                     return (
                       <tr key={food.id}>
-                        {/* Name */}
                         <td className="col-name">
                           {isEditing ? (
                             <input
                               type="text"
                               value={editForm.name}
-                              onChange={(e) =>
-                                updateEditForm("name", e.target.value)
-                              }
+                              onChange={e => updateEditForm("name", e.target.value)}
                               className="foods-input inline-input"
                             />
                           ) : (
@@ -443,15 +330,11 @@ export default function Foods() {
                             </>
                           )}
                         </td>
-
-                        {/* Category */}
                         <td className="col-category">
                           {isEditing ? (
                             <select
                               value={editForm.category}
-                              onChange={(e) =>
-                                updateEditForm("category", e.target.value)
-                              }
+                              onChange={e => updateEditForm("category", e.target.value)}
                               className="foods-select inline-select"
                             >
                               {userCategories.map((key) => (
@@ -461,34 +344,21 @@ export default function Foods() {
                               ))}
                             </select>
                           ) : (
-                            <span>
-                              {food.category
-                                ? prettyLabel(food.category)
-                                : "—"}
-                            </span>
+                            <span>{food.category ? prettyLabel(food.category) : "—"}</span>
                           )}
                         </td>
-
-                        {/* Unit */}
                         <td>
                           {isEditing ? (
                             <input
                               type="text"
                               value={editForm.unitLabel}
-                              onChange={(e) =>
-                                updateEditForm(
-                                  "unitLabel",
-                                  e.target.value
-                                )
-                              }
+                              onChange={e => updateEditForm("unitLabel", e.target.value)}
                               className="foods-input inline-input"
                             />
                           ) : (
                             food.unitLabel || "—"
                           )}
                         </td>
-
-                        {/* Kcal/Unit */}
                         <td className="text-right">
                           {isEditing ? (
                             <input
@@ -496,32 +366,20 @@ export default function Foods() {
                               min="0"
                               step="1"
                               value={editForm.kcalPerUnit}
-                              onChange={(e) =>
-                                updateEditForm(
-                                  "kcalPerUnit",
-                                  e.target.value
-                                )
-                              }
+                              onChange={e => updateEditForm("kcalPerUnit", e.target.value)}
                               className="foods-input inline-input text-right"
                             />
                           ) : (
                             food.kcalPerUnit ?? 0
                           )}
                         </td>
-
-                        {/* Fav */}
                         <td className="col-fav">
                           {isEditing ? (
                             <label className="checkbox-inline">
                               <input
                                 type="checkbox"
                                 checked={editForm.isFavourite}
-                                onChange={(e) =>
-                                  updateEditForm(
-                                    "isFavourite",
-                                    e.target.checked
-                                  )
-                                }
+                                onChange={e => updateEditForm("isFavourite", e.target.checked)}
                               />
                             </label>
                           ) : food.isFavourite ? (
@@ -534,8 +392,6 @@ export default function Foods() {
                             <span className="muted-dash">—</span>
                           )}
                         </td>
-
-                        {/* Actions */}
                         <td className="text-right col-actions">
                           {isEditing ? (
                             <div className="row-actions">
@@ -586,7 +442,6 @@ export default function Foods() {
           )}
         </div>
       </section>
-
       {/* Category Manager Modal */}
       {categoryModalOpen && (
         <div
@@ -595,18 +450,15 @@ export default function Foods() {
         >
           <div
             className="foods-modal"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <div className="modal-header">
               <h2>Manage Categories</h2>
             </div>
-
             <ul className="category-list">
               {userCategories.map((key) => (
                 <li key={key} className="category-row">
-                  <span className="category-name">
-                    {prettyLabel(key)}
-                  </span>
+                  <span className="category-name">{prettyLabel(key)}</span>
                   <div className="category-actions">
                     <button
                       type="button"
@@ -627,7 +479,6 @@ export default function Foods() {
                   </div>
                 </li>
               ))}
-
               {userCategories.length === 0 && (
                 <li className="category-row empty">
                   <span className="muted">
@@ -636,12 +487,11 @@ export default function Foods() {
                 </li>
               )}
             </ul>
-
             <div className="category-add-row">
               <input
                 type="text"
                 value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
+                onChange={e => setNewCategoryName(e.target.value)}
                 placeholder="New category name"
                 className="foods-input"
               />
@@ -654,7 +504,6 @@ export default function Foods() {
                 <span>Add</span>
               </button>
             </div>
-
             <div className="modal-footer">
               <button
                 type="button"
