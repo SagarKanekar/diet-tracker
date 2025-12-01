@@ -13,7 +13,7 @@ import {
 
 import "../styles/Sidebar.css";
 
-export default function Sidebar({ open, setOpen }) {
+export default function Sidebar({ open, setOpen, mobileRailVisible }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -44,20 +44,28 @@ export default function Sidebar({ open, setOpen }) {
 
   return (
     <>
-      {/* --- DESKTOP: Compact Rail (Pills) --- */}
-      <div className={`sidebar-compact ${open ? "sidebar-open" : ""}`}>
-        
-        {/* Hamburger - Now identical size/shape to buttons */}
+      {/* --- DESKTOP/MOBILE COMPACT RAIL --- 
+          Visibility is now controlled by mobileRailVisible prop
+      */}
+      <div
+        className={
+          "sidebar-compact" +
+          (mobileRailVisible ? " sidebar-compact-visible" : " sidebar-compact-hidden")
+        }
+      >
+        {/* Hamburger - Uses mini-btn class for uniformity */}
         <button
           type="button"
-          className="hamburger-btn"
+          className="mini-btn"
           onClick={toggleSidebar}
           aria-label="Toggle sidebar menu"
         >
-          <Menu size={20} />
+          <span className="mini-btn-icon-wrapper">
+            <Menu size={20} />
+          </span>
         </button>
 
-        {/* Navigation Pills */}
+        {/* Navigation Pills (Mapped) */}
         <div className="sidebar-links">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -66,17 +74,20 @@ export default function Sidebar({ open, setOpen }) {
               <button
                 key={item.to}
                 type="button"
-                className={`mini-btn mini-btn-${item.index} ${isActive ? "mini-btn-active" : ""}`}
+                className={`mini-btn mini-btn-${item.index} ${
+                  isActive ? "mini-btn-active" : ""
+                }`}
                 onClick={() => {
                   navigate(item.to);
-                  // Close sidebar if on mobile/tablet size
-                  if (window.innerWidth < 900) closeSidebar();
+                  // Close full sidebar if open when clicking a rail item
+                  if (open) closeSidebar(); 
                 }}
                 aria-label={item.label}
               >
                 <span className="mini-btn-icon-wrapper">
                   <Icon size={20} />
                 </span>
+                {/* Optional: Label wrapper if you want hover text on desktop */}
                 <span className="mini-btn-label-wrapper">
                   <span className="mini-btn-label">{item.label}</span>
                 </span>
@@ -86,10 +97,10 @@ export default function Sidebar({ open, setOpen }) {
         </div>
       </div>
 
-      {/* --- Overlay (Dimming Effect) --- */}
+      {/* --- OVERLAY (Dimming Effect) --- */}
       {open && <div className="sidebar-overlay" onClick={closeSidebar} />}
 
-      {/* --- MOBILE: Slide-out Panel --- */}
+      {/* --- MOBILE/TABLET SLIDE-OUT PANEL --- */}
       <aside
         className={`sidebar-panel ${open ? "open" : ""}`}
         aria-hidden={!open}
@@ -101,7 +112,7 @@ export default function Sidebar({ open, setOpen }) {
               <span className="sidebar-logo-accent">Diet</span>Tracker
             </span>
           </div>
-          
+
           <button
             type="button"
             className="panel-close-btn"
