@@ -29,6 +29,15 @@
   font-size: var(--text-xl);
   font-weight: 700;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-title-icon {
+  width: 22px;
+  height: 22px;
+  color: #3b82f6;
 }
 
 .settings-subtitle {

@@ -315,15 +315,13 @@ export default function Settings() {
     <div className="page settings-page">
       {/* Header */}
       <header className="settings-header">
-        <div>
-          <h1 className="settings-title">Settings</h1>
-          <p className="settings-subtitle">
-            Manage your profile, calorie targets, and data backups.
-          </p>
-        </div>
+        <h1 className="settings-title">
+          <User size={20} className="settings-title-icon" />
+          <span>Settings</span>
+        </h1>
+
         <div className="settings-header-pill">
-          <span>Local profile</span>
-          <span>v{CURRENT_APP_VERSION}</span>
+          Local profile v{CURRENT_APP_VERSION}
         </div>
       </header>
 
@@ -438,7 +436,7 @@ export default function Settings() {
                     placeholder="e.g. 1600"
                   />
                   <p className="settings-help">
-                    Calories burned at rest. If you don&apos;t know it, use a
+                    Calories burned at rest. If you don't know it, use a
                     BMR calculator online.
                   </p>
                 </div>
@@ -490,8 +488,8 @@ export default function Settings() {
                       disabled={form.defaultActivityPreset !== "custom"}
                     />
                     <p className="settings-help">
-                      Auto-set from activity level unless you choose &quot;
-                      custom&quot;.
+                      Auto-set from activity level unless you choose "
+                      custom".
                     </p>
                   </div>
                 </div>

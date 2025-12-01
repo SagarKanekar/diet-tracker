@@ -293,14 +293,17 @@ export default function Stats() {
       {/* Header */}
       <header className="stats-header">
         <div>
-          <h1 className="stats-title">Stats</h1>
+          <h1 className="stats-title">
+            <CalendarIcon size={22} className="stats-title-icon" />
+            <span>Stats</span>
+          </h1>
           <p className="stats-subtitle">
             Frozen metrics on the left, days sliding across on the right.
           </p>
         </div>
 
         <div className="stats-header-pill">
-          <span>{summary.daysLogged} days logged</span>
+          {summary.daysLogged} days logged
         </div>
       </header>
 
