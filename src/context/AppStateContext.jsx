@@ -255,6 +255,17 @@ function appReducer(state, action) {
       };
     }
 
+    // --- ADD THIS: replace all food items (for import) ---
+    case "SET_ALL_FOOD_ITEMS": {
+      if (!Array.isArray(action.payload)) return state;
+      return { ...state, foodItems: action.payload };
+    }
+    // --- ADD THIS: replace all food categories (for import) ---
+    case "SET_ALL_FOOD_CATEGORIES": {
+      if (!Array.isArray(action.payload)) return state;
+      return { ...state, foodCategories: action.payload };
+    }
+
     case "ADD_MEAL_ENTRY": {
       const { date, mealType, foodItemId, foodNameSnapshot, unitLabelSnapshot, kcalPerUnitSnapshot, quantity, totalKcal } = action.payload;
       const dayLog = ensureDayLog(state, date);

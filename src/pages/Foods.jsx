@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useAppState, DEFAULT_FOOD_CATEGORIES } from "../context/AppStateContext.jsx";
 import {
   Search,
@@ -10,6 +10,7 @@ import {
   Star,
   UtensilsCrossed,
   Settings2,
+  Database,
 } from "lucide-react";
 import "../styles/Foods.css";
 function prettyLabel(key) {
@@ -22,6 +23,7 @@ function prettyLabel(key) {
 }
 export default function Foods() {
   const { state, dispatch } = useAppState();
+  const fileInputRef = useRef(null);
   // ---------- UI State ----------
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -41,7 +43,53 @@ export default function Foods() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [databaseModalOpen, setDatabaseModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  // Export logic: download foods & categories as JSON
+  const handleExport = () => {
+    const data = {
+      foodItems: state.foodItems || [],
+      foodCategories: state.foodCategories || [],
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "my-foods-database.json";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  };
+  // Import logic: file input, confirm, dispatch actions
+  const handleImportClick = () => {
+    if (fileInputRef.current) fileInputRef.current.value = ""; // Reset so re-uploading works
+    fileInputRef.current?.click();
+  };
+  const handleImportFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!Array.isArray(data.foodItems) || !Array.isArray(data.foodCategories)) {
+          alert("Invalid format. File must contain arrays 'foodItems' and 'foodCategories'.");
+          return;
+        }
+        if (window.confirm("Importing will REPLACE your existing foods and categories. Continue?")) {
+          dispatch({ type: "SET_ALL_FOOD_ITEMS", payload: data.foodItems });
+          dispatch({ type: "SET_ALL_FOOD_CATEGORIES", payload: data.foodCategories });
+          alert("Database imported!");
+        }
+      } catch (err) {
+        alert("Failed to parse JSON: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
   // ---------- Categories ----------
   const userCategories =
     (state.foodCategories && state.foodCategories.length
@@ -191,6 +239,15 @@ export default function Foods() {
           <span className="tag-pill">
             {allFoods.length} {allFoods.length === 1 ? "item" : "items"}
           </span>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setDatabaseModalOpen(true)}
+            title="Manage Database"
+            style={{ borderRadius: "50%" }}
+          >
+            <Database size={20} />
+          </button>
         </div>
       </header>
       {/* Add New Item card */}
@@ -516,6 +573,59 @@ export default function Foods() {
           </div>
         </div>
       )}
+      {/* Database Management Modal */}
+      {databaseModalOpen && (
+        <div
+          className="foods-modal-backdrop"
+          onClick={() => setDatabaseModalOpen(false)}
+        >
+          <div
+            className="foods-modal"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>Manage Database</h2>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleExport}
+                  style={{ flex: 1 }}
+                >
+                  Export Database
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleImportClick}
+                  style={{ flex: 1 }}
+                >
+                  Import Database
+                </button>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setDatabaseModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        onChange={handleImportFile}
+        style={{ display: "none" }}
+        aria-label="Import foods database"
+      />
     </div>
   );
 }
