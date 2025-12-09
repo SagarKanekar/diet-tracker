@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useAppState } from "../context/AppStateContext";
-import { computeEATForActivity, sumEATFromActivities } from "../utils/calculations";
+import { computeEATForActivity, sumEATFromActivities, computeNEAT, computeAdvancedActivityFactor } from "../utils/calculations";
 import "../styles/ActivityTab.css";
 
 // Simple UUID helper for client-side ids
@@ -18,9 +18,9 @@ export default function ActivityTab() {
   const [activities, setActivities] = useState(Array.isArray(day.activities) ? day.activities : []);
 
   // NEAT survey state (steps + survey fields)
-  const [steps, setSteps] = useState(day.steps ??  "");
-  const [subjective, setSubjective] = useState(day.survey?.subjective ??  50);
-  const [standingHours, setStandingHours] = useState(day.survey?. standingHours ?? 0);
+  const [steps, setSteps] = useState(day.steps ?? "");
+  const [subjective, setSubjective] = useState(day.survey?.subjective ?? 50);
+  const [standingHours, setStandingHours] = useState(day.survey?.standingHours ?? 0);
   const [activeCommute, setActiveCommute] = useState(day.survey?.activeCommute ?? false);
 
   useEffect(() => {
@@ -29,11 +29,40 @@ export default function ActivityTab() {
     setSteps(day.steps ?? "");
     setSubjective(day.survey?.subjective ?? 50);
     setStandingHours(day.survey?.standingHours ?? 0);
-    setActiveCommute(day. survey?.activeCommute ?? false);
+    setActiveCommute(day.survey?.activeCommute ?? false);
   }, [date]);
 
-  // computed preview of totals
-  const eatTotals = sumEATFromActivities(activities, { weight_kg: profile.weight_kg, bmr: profile.bmr });
+  // Determine weight to use: day-level first, then profile fallbacks
+  const effectiveWeightKg = useMemo(() => {
+    return Number(day.weightKg ?? profile.weight_kg ?? profile.weight ?? 0) || 0;
+  }, [day.weightKg, profile.weight_kg, profile.weight]);
+
+  const bmrSnapshot = useMemo(() => Number(day.bmrSnapshot ?? profile.bmr ?? 0), [day.bmrSnapshot, profile.bmr]);
+
+  const previewSteps = useMemo(() => steps === "" ? null : Number(steps), [steps]);
+
+  // computed preview of totals (pass effective weight & bmr snapshot)
+  const eatTotals = useMemo(() => {
+    return sumEATFromActivities(activities, { weight_kg: effectiveWeightKg, bmr: bmrSnapshot });
+  }, [activities, effectiveWeightKg, bmrSnapshot]);
+
+  // compute NEAT preview from local steps/survey for quick feedback
+  const neatPreview = useMemo(() => {
+    const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
+    return computeNEAT({ steps: previewSteps, weight_kg: effectiveWeightKg, survey, bmr: bmrSnapshot });
+  }, [previewSteps, subjective, standingHours, activeCommute, effectiveWeightKg, bmrSnapshot]);
+
+  // compute Advanced AF preview combining current activities + NEAT
+  const advAFPreview = useMemo(() => {
+    const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
+    return computeAdvancedActivityFactor({
+      bmr: bmrSnapshot,
+      weight_kg: effectiveWeightKg,
+      activities,
+      steps: previewSteps,
+      survey,
+    });
+  }, [activities, previewSteps, subjective, standingHours, activeCommute, effectiveWeightKg, bmrSnapshot]);
 
   function addEmptyActivity(type = "walk") {
     const a = {
@@ -41,7 +70,7 @@ export default function ActivityTab() {
       type,
       duration_min: 30,
       distance_km: null,
-      intensity:  50,
+      intensity: 50,
       notes: "",
     };
     setActivities((s) => [...s, a]);
@@ -56,12 +85,17 @@ export default function ActivityTab() {
   }
 
   function saveActivities() {
+    // dispatch update to day log and set activityMode to advanced_full if activities exist
     dispatch({ type: "UPDATE_DAY_ACTIVITIES", payload: { date, activities } });
+    // Make sure the UI recomputes DayLog by also updating steps/survey if present
+    const stepsVal = steps === "" ? null : Number(steps);
+    const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
+    dispatch({ type: "UPDATE_DAY_STEPS_SURVEY", payload: { date, steps: stepsVal, survey } });
     console.log("Activities saved", activities);
   }
 
   function saveStepsSurvey() {
-    const survey = { subjective:  Number(subjective), standingHours: Number(standingHours), activeCommute:  !!activeCommute };
+    const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
     const stepsVal = steps === "" ? null : Number(steps);
     dispatch({ type: "UPDATE_DAY_STEPS_SURVEY", payload: { date, steps: stepsVal, survey } });
     console.log("Saved steps/survey", stepsVal, survey);
@@ -134,23 +168,23 @@ export default function ActivityTab() {
           </div>
         ) : (
           activities.map((a) => {
-            const preview = computeEATForActivity(a, { weight_kg: profile.weight_kg, bmr: profile.bmr });
+            const preview = computeEATForActivity(a, { weight_kg: effectiveWeightKg, bmr: bmrSnapshot });
             return (
               <div key={a.id} className="activity-entry">
                 <div className="activity-entry-header">
                   <div className="activity-entry-type">
-                    <span className={getTypeBadgeClass(a. type)}>
+                    <span className={getTypeBadgeClass(a.type)}>
                       {a.type === "walk" && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2. 5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/>
                         </svg>
                       )}
-                      {a. type === "jog" && (
+                      {a.type === "jog" && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="17" cy="5" r="1"/><path d="M8 20h4l2-4"/><path d="M14 16 8 8l-3 5"/><path d="m21 12-4-3-5 7"/>
                         </svg>
                       )}
-                      {a.type?. toUpperCase() || 'ACTIVITY'}
+                      {a.type?.toUpperCase() || 'ACTIVITY'}
                     </span>
                   </div>
                   <button className="activity-btn activity-btn-danger" onClick={() => removeActivity(a.id)}>
@@ -168,7 +202,7 @@ export default function ActivityTab() {
                       type="number" 
                       className="activity-input" 
                       value={a.duration_min} 
-                      onChange={(e) => updateActivity(a.id, { duration_min: Number(e.target. value) })} 
+                      onChange={(e) => updateActivity(a.id, { duration_min: Number(e.target.value) })} 
                       placeholder="30"
                     />
                   </div>
@@ -179,8 +213,8 @@ export default function ActivityTab() {
                       type="number" 
                       step="0.01" 
                       className="activity-input" 
-                      value={a.distance_km ??  ''} 
-                      onChange={(e) => updateActivity(a.id, { distance_km: e.target.value === '' ? null : Number(e. target.value) })} 
+                      value={a.distance_km ?? ''} 
+                      onChange={(e) => updateActivity(a.id, { distance_km: e.target.value === '' ? null : Number(e.target.value) })} 
                       placeholder="Optional"
                     />
                   </div>
@@ -193,8 +227,8 @@ export default function ActivityTab() {
                         min="0" 
                         max="100" 
                         className="activity-range" 
-                        value={a. intensity} 
-                        onChange={(e) => updateActivity(a. id, { intensity: Number(e.target.value) })} 
+                        value={a.intensity} 
+                        onChange={(e) => updateActivity(a.id, { intensity: Number(e.target.value) })} 
                       />
                       <span className="activity-range-value">{a.intensity}%</span>
                     </div>
@@ -219,7 +253,7 @@ export default function ActivityTab() {
                     BMR Share: <strong>{preview.bmr_share} kcal</strong>
                   </div>
                   <div className="activity-preview-stat activity-preview-stat-highlight">
-                    Net EAT: <strong>{preview. net} kcal</strong>
+                    Net EAT: <strong>{preview.net} kcal</strong>
                   </div>
                 </div>
               </div>
@@ -247,9 +281,9 @@ export default function ActivityTab() {
             <input 
               type="number" 
               className="activity-input" 
-              value={steps ??  ''} 
+              value={steps ?? ''} 
               onChange={(e) => setSteps(e.target.value)} 
-              placeholder="e.g.  8000"
+              placeholder="e.g. 8000"
             />
           </div>
 
@@ -322,13 +356,6 @@ export default function ActivityTab() {
 
         <div className="totals-grid">
           <div className="totals-stat">
-            <span className="totals-stat-label">Total Gross</span>
-            <span className="totals-stat-value">
-              {eatTotals.totalGross}
-              <span className="totals-stat-unit">kcal</span>
-            </span>
-          </div>
-          <div className="totals-stat">
             <span className="totals-stat-label">Total Net EAT</span>
             <span className="totals-stat-value">
               {eatTotals.totalNet}
@@ -336,10 +363,16 @@ export default function ActivityTab() {
             </span>
           </div>
           <div className="totals-stat">
-            <span className="totals-stat-label">BMR Share</span>
+            <span className="totals-stat-label">NEAT</span>
             <span className="totals-stat-value">
-              {eatTotals.totalBmrShare}
+              {neatPreview}
               <span className="totals-stat-unit">kcal</span>
+            </span>
+          </div>
+          <div className="totals-stat">
+            <span className="totals-stat-label">Advanced AF</span>
+            <span className="totals-stat-value">
+              {advAFPreview.afAdvanced?.toFixed(3) ?? '-'}
             </span>
           </div>
         </div>
@@ -355,7 +388,7 @@ export default function ActivityTab() {
         </button>
         <button 
           className="activity-btn activity-btn-ghost" 
-          onClick={() => { setActivities([]); dispatch({ type: 'UPDATE_DAY_ACTIVITIES', payload: { date, activities:  [] } }); }}
+          onClick={() => { setActivities([]); dispatch({ type: 'UPDATE_DAY_ACTIVITIES', payload: { date, activities: [] } }); }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>

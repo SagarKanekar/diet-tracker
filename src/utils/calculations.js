@@ -152,15 +152,24 @@ export function computeEAT_walk(activity = {}, profile = {}) {
   let gross = 0;
   if (activity.distance_km != null) {
     gross = grossKcalWalkFromDistance({ distance_km: activity.distance_km, weight_kg });
+    // apply a gentle intensity scaling (intensity: 0..100 -> scale near 1.0)
+    // default intensity = 50 -> scale 1.0
+    const intensity = toNum(activity.intensity, 50);
+    const scale = 1 + (intensity - 50) / 400; // +-12.5% at extremes
+    const clampedScale = Math.max(0.75, Math.min(1.30, scale));
+    gross = gross * clampedScale;
   } else {
+    // fallback: estimate distance from duration & intensity
     const distance = estimateDistanceFromDurationAndIntensity({ activityType: 'walk', duration_min, intensity: activity.intensity });
     gross = grossKcalWalkFromDistance({ distance_km: distance, weight_kg });
   }
+
   const bshare = bmrShareDuring(bmr, duration_min);
   const net = netFromGrossAndBmr(gross, bmr, duration_min);
   return { gross: round(gross), net, bmr_share: round(bshare) };
 }
 
+// REPLACE computeEAT_jog with this
 export function computeEAT_jog(activity = {}, profile = {}) {
   const duration_min = toNum(activity.duration_min, 0);
   const weight_kg = toNum(profile.weight_kg, profile.weight || 70);
@@ -169,10 +178,16 @@ export function computeEAT_jog(activity = {}, profile = {}) {
   let gross = 0;
   if (activity.distance_km != null) {
     gross = grossKcalJogFromDistance({ distance_km: activity.distance_km, weight_kg });
+    // gentle intensity scaling for jogging as well
+    const intensity = toNum(activity.intensity, 50);
+    const scale = 1 + (intensity - 50) / 300; // slightly stronger effect for running
+    const clampedScale = Math.max(0.75, Math.min(1.35, scale));
+    gross = gross * clampedScale;
   } else {
     const distance = estimateDistanceFromDurationAndIntensity({ activityType: 'jog', duration_min, intensity: activity.intensity });
     gross = grossKcalJogFromDistance({ distance_km: distance, weight_kg });
   }
+
   const bshare = bmrShareDuring(bmr, duration_min);
   const net = netFromGrossAndBmr(gross, bmr, duration_min);
   return { gross: round(gross), net, bmr_share: round(bshare) };
