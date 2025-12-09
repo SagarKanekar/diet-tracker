@@ -117,6 +117,24 @@ export default function Stats() {
           formatter: (v) =>
             v === null || v === undefined ? "-" : v.toFixed(2),
         },
+        {
+          key: "neatKcal",
+          label: "NEAT",
+          field: "neatKcal",
+          unit: "kcal",
+        },
+        {
+          key: "eatNetKcal",
+          label: "EAT (net)",
+          field: "eatNetKcal",
+          unit: "kcal",
+        },
+        {
+          key: "tefKcal",
+          label: "TEF",
+          field: "tefKcal",
+          unit: "kcal",
+        },
       ],
     },
     {
@@ -168,7 +186,8 @@ export default function Stats() {
         const date = dateToKey(day.date || day.dateKey);
         if (!date) return null;
 
-        const { tdee, totalIntake } = getDayDerived(state, date);
+        const derived = getDayDerived(state, date);
+        const { tdee, totalIntake, tdeeBreakdown } = derived;
         const totals = computeDayMealTotals(day);
 
         const deficit = tdee - totalIntake;
@@ -177,6 +196,25 @@ export default function Stats() {
 
         const activityFactor =
           day.activityFactor ?? profile.defaultActivityFactor ?? 1.2;
+
+        // Pull NEAT / EAT / TEF from the breakdown
+        const neatKcal = safeNum(tdeeBreakdown?.neat ?? 0);
+
+        let eatNetKcal = 0;
+        if (tdeeBreakdown?.eat) {
+          if (typeof tdeeBreakdown.eat === "number") {
+            eatNetKcal = tdeeBreakdown.eat;
+          } else if (typeof tdeeBreakdown.eat.totalNet !== "undefined") {
+            eatNetKcal = tdeeBreakdown.eat.totalNet;
+          } else if (typeof tdeeBreakdown.eat.total !== "undefined") {
+            eatNetKcal = tdeeBreakdown.eat.total;
+          }
+        }
+
+        const tefKcal = safeNum(
+          tdeeBreakdown?.tef ??
+            Math.round((totalIntake || 0) * 0.1) // 10% TEF fallback
+        );
 
         const meals = day.meals || [];
         const mealText = (type) =>
@@ -192,6 +230,9 @@ export default function Stats() {
           deficit,
           estDeltaKg,
           activityFactor,
+          neatKcal,
+          eatNetKcal,
+          tefKcal,
           lunch: totals.lunch,
           dinner: totals.dinner,
           extras: totals.extras,
