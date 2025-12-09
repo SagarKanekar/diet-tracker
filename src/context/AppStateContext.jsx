@@ -2,9 +2,13 @@
 import React, { createContext, useContext, useEffect, useReducer } from "react";
 // ✅ Import centralized calculation logic
 import {
-  calculateDayTDEE,
+  calculateDayTDEE,          // legacy compatibility
   computeDayMealTotals,
   calculateEffectiveWorkout,
+  // advanced functions:
+  computeAdvancedActivityFactor,
+  computeTDEEfromAFandTEF,
+  computeNEAT,
 } from "../utils/calculations";
 
 /* ---------------------------------------------------------------------------
@@ -138,37 +142,89 @@ function ensureDayLog(state, date) {
  * Uses calculateDayTDEE() from the new calculations.js which accepts (day, profile).
  */
 export function getDayDerived(state, dateKey) {
-  const day = state.dayLogs?.[dateKey] || {};
+  const day = (state.dayLogs && state.dayLogs[dateKey]) ? state.dayLogs[dateKey] : {};
   const profile = state.profile || {};
 
-  // Use the canonical wrapper that knows about advanced/manual modes.
-  // calculateDayTDEE returns an object { tdee, maintenancePlusActivity, tef, source, ... }
-  const tdeeResult = calculateDayTDEE(day, profile);
-  // tdee may be at top-level or nested — be defensive
-  const tdee = toNumberSafe(tdeeResult?.tdee ?? tdeeResult ?? 0);
+  // canonical BMR & weight fallbacks
+  const bmr = Number(day.bmrSnapshot ?? profile.bmr ?? profile.BMR ?? 0) || 0;
+  const weight_kg = Number(day.weightKg ?? profile.weight_kg ?? profile.weight ?? 0) || 0;
 
-  // Compute intake totals from day.meals (canonical)
-  // computeDayMealTotals expects an array of meal entries
-  const mealsArray = Array.isArray(day.meals) ? day.meals : [];
+  // compute intake totals robustly (computeDayMealTotals accepts either day.meals or an array)
+  const mealsArray = Array.isArray(day.meals) ? day.meals : (Array.isArray(day) ? day : []);
   const totals = computeDayMealTotals(mealsArray) || {};
-  // our computeDayMealTotals returns { kcal, protein_g, carbs_g, fat_g } in the new utils
-  const totalIntake = toNumberSafe(totals.kcal ?? totals.total ?? 0);
+  const totalIntake = Number(totals.total ?? totals.kcal ?? 0) || 0;
 
-  // Keep legacy sign convention for net (Positive = Surplus (Ate more than burned))
-  const netKcal = Math.round(totalIntake - tdee);
+  // choose computation path depending on activityMode
+  const mode = day.activityMode ?? "manual";
+  let tdeeBreakdown = null;
+  let tdeeVal = 0;
+
+  if (mode === "advanced_neat" || mode === "advanced_full") {
+    // Advanced path: compute NEAT + EAT -> AF -> TDEE + TEF
+    const adv = computeAdvancedActivityFactor({
+      bmr,
+      weight_kg,
+      activities: Array.isArray(day.activities) ? day.activities : [],
+      steps: day.steps ?? null,
+      survey: day.survey ?? null,
+    });
+
+    // adv contains: { afAdvanced, neat, eat, maintenancePlusActivity, eatDetails }
+    const tdeeRes = computeTDEEfromAFandTEF({
+      bmr,
+      activityFactor: adv.afAdvanced,
+      intakeKcal: totalIntake,
+      // tefRatio: optional, default 0.1 used if omitted
+    });
+
+    tdeeBreakdown = {
+      afComputed: adv.afAdvanced,
+      neat: adv.neat,
+      eat: adv.eat,
+      eatDetails: adv.eatDetails,
+      maintenancePlusActivity: adv.maintenancePlusActivity,
+      tef: tdeeRes.tef,
+      tdee: tdeeRes.tdee,
+      source: "advanced",
+    };
+
+    tdeeVal = tdeeRes.tdee;
+  } else {
+    // Manual / legacy path — preserve old behavior but return breakdown object
+    // get activity factor from day or profile
+    const afManual = Number(day.activityFactor ?? profile.defaultActivityFactor ?? 1.2) || 1.2;
+    const maintenancePlusActivity = Math.round(bmr * afManual);
+    const tefManual = Math.round(totalIntake * 0.10); // TEF = 10% of intake
+    const tdeeManual = maintenancePlusActivity + tefManual;
+
+    tdeeBreakdown = {
+      afComputed: afManual,
+      neat: 0,
+      eat: 0,
+      eatDetails: [],
+      maintenancePlusActivity,
+      tef: tefManual,
+      tdee: tdeeManual,
+      source: "manual",
+    };
+
+    tdeeVal = tdeeManual;
+  }
+
+  const netKcal = Math.round(totalIntake - tdeeVal);
 
   return {
-    tdee,
+    tdee: tdeeVal,
     totalIntake,
     netKcal,
-    tdeeBreakdown: tdeeResult,
+    tdeeBreakdown,
     workoutCalories: Number(day.workoutCalories ?? day.workoutKcal ?? 0),
-    intensityFactor: day.intensityFactor,
+    intensityFactor: day.intensityFactor ?? null,
     meals: totals,
     activities: Array.isArray(day.activities) ? day.activities : [],
     steps: day.steps ?? null,
     survey: day.survey ?? null,
-    activityMode: day.activityMode ?? "manual",
+    activityMode: mode,
   };
 }
 
