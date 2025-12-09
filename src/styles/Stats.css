@@ -648,3 +648,341 @@
 .metric-sort-active.metric-sort-meals {
   background: #e7f7ec; /* soft green */
 }
+
+/* =============================================================================
+   TDEE DECOMPOSITION SECTION (add to existing Stats.css)
+   ============================================================================= */
+
+.stats-decomposition-card {
+  background: var(--surface);
+  border-radius: var(--card-radius);
+  padding: 1.25rem;
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 1.5rem;
+}
+
+.stats-decomposition-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom:  1rem;
+  padding-bottom: 0.75rem;
+  border-bottom:  1px solid var(--border-subtle);
+}
+
+.stats-decomposition-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stats-decomposition-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stats-decomposition-select {
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.stats-toggle-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--surface-muted);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stats-toggle-btn:hover {
+  background: #e2e8f0;
+}
+
+.stats-toggle-btn.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* AF Trend Chart */
+.stats-af-trend {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  padding:  1rem;
+  background: #f8fafc;
+  border-radius:  10px;
+}
+
+.stats-af-trend-chart {
+  flex: 1;
+  position: relative;
+}
+
+.stats-af-trend-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.stats-af-svg {
+  width: 100%;
+  height:  60px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+}
+
+.stats-af-range {
+  position: absolute;
+  right: -30px;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 60px;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+.stats-af-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 100px;
+}
+
+.stats-af-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.stats-af-info-label {
+  font-size: 0.65rem;
+  font-weight:  600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.stats-af-info-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Stack Legend */
+.stats-stack-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom:  1rem;
+  padding: 0.5rem 0;
+}
+
+.stats-stack-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+
+.stats-stack-dot {
+  width: 10px;
+  height: 10px;
+  border-radius:  2px;
+}
+
+/* Decomposition Grid */
+.stats-decomposition-grid {
+  display: grid;
+  grid-template-columns:  repeat(auto-fill, minmax(80px, 1fr));
+  gap: 0.5rem;
+  margin-bottom:  1rem;
+}
+
+.stats-decomposition-day {
+  background: white;
+  border-radius: 8px;
+  padding: 0.5rem;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.15s ease;
+}
+
+.stats-decomposition-day:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.stats-decomposition-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.stats-decomposition-day-name {
+  font-size: 0.65rem;
+  font-weight:  600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.stats-decomposition-day-date {
+  font-size: 0.7rem;
+  color: var(--text-soft);
+}
+
+.stats-decomposition-bar-container {
+  margin-bottom: 0.4rem;
+}
+
+.stats-decomposition-bar {
+  height: 8px;
+  background: #e6e6e6;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+}
+
+.stats-decomposition-segment {
+  height: 100%;
+  min-width: 1px;
+  transition: width 0.3s ease;
+}
+
+.stats-decomposition-day-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.stats-decomposition-tdee {
+  font-size: 0.7rem;
+  font-weight:  700;
+  color: var(--text);
+}
+
+.stats-decomposition-af {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+/* Details/Summary for table */
+.stats-decomposition-details {
+  margin-top: 1rem;
+}
+
+.stats-decomposition-details-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size:  0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius:  6px;
+  transition:  background 0.15s ease;
+}
+
+.stats-decomposition-details-summary:hover {
+  background: var(--primary-soft);
+}
+
+.stats-decomposition-details[open] .stats-decomposition-details-summary {
+  margin-bottom: 0.75rem;
+}
+
+.stats-decomposition-table-wrapper {
+  overflow-x: auto;
+}
+
+.stats-decomposition-table {
+  width:  100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.stats-decomposition-table th,
+.stats-decomposition-table td {
+  padding:  0.5rem;
+  border-bottom:  1px solid var(--border-subtle);
+  text-align: right;
+}
+
+.stats-decomposition-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+.stats-decomposition-table th:first-child,
+.stats-decomposition-table td:first-child {
+  text-align: left;
+}
+
+.stats-decomposition-table tbody tr:hover {
+  background:  var(--surface-muted);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .stats-af-trend {
+    flex-direction: column;
+  }
+  
+  .stats-af-range {
+    display: none;
+  }
+  
+  .stats-af-info {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+  }
+  
+  .stats-decomposition-grid {
+    grid-template-columns:  repeat(auto-fill, minmax(65px, 1fr));
+    gap: 0.35rem;
+  }
+  
+  .stats-decomposition-day {
+    padding: 0.4rem;
+  }
+  
+  .stats-decomposition-day-name {
+    font-size: 0.6rem;
+  }
+  
+  .stats-decomposition-day-date {
+    font-size: 0.6rem;
+  }
+  
+  .stats-decomposition-tdee {
+    font-size:  0.6rem;
+  }
+}
