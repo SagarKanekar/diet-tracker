@@ -10,42 +10,74 @@ import {
 } from "../context/AppStateContext";
 import FoodAutocomplete from "../components/FoodAutocomplete";
 
-// Icons for UI Polish
+// Icons
 import { 
   Calendar, Activity, Droplet, Scale, 
-  Utensils, Moon, Coffee, Plus, Save, X 
+  Utensils, Moon, Coffee, Plus, Save, X,
+  Flame, Zap, TrendingUp, ChevronDown
 } from "lucide-react";
 
-// Import separate CSS
 import "../styles/DayLog.css"; 
 
 const MEAL_TYPES = [
   { id: "lunch", label: "Lunch", icon: <Utensils size={18} /> },
   { id: "dinner", label: "Dinner", icon: <Moon size={18} /> },
-  { id: "extra", label: "Snacks", icon: <Coffee size={18} /> }, // ✅ FIXED: Changed from "Extras / Snacks"
+  { id: "extra", label: "Snacks", icon: <Coffee size={18} /> },
 ];
 
 // --- Helpers ---
 function generateId(prefix) {
-  if (window.crypto?.randomUUID) return `${prefix}-${window.crypto.randomUUID()}`;
+  if (window.crypto?. randomUUID) return `${prefix}-${window.crypto. randomUUID()}`;
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 const isValidDateString = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
-// --- Sub-Component: Workout Box ---
+// --- Calorie Ring Component ---
+function CalorieRing({ intake, target }) {
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  const percentage = target > 0 ? Math.min((intake / target) * 100, 150) : 0;
+  const offset = circumference - (percentage / 100) * circumference;
+  
+  let ringClass = "";
+  if (percentage > 100) ringClass = "over-target";
+  else if (percentage >= 85) ringClass = "near-target";
+
+  return (
+    <div className="calorie-ring-container">
+      <svg className="calorie-ring-svg" viewBox="0 0 100 100">
+        <circle className="calorie-ring-bg" cx="50" cy="50" r={radius} />
+        <circle 
+          className={`calorie-ring-progress ${ringClass}`}
+          cx="50" 
+          cy="50" 
+          r={radius}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div className="calorie-ring-center">
+        <div className="calorie-ring-value">{Math.round(intake)}</div>
+        <div className="calorie-ring-label">kcal</div>
+      </div>
+    </div>
+  );
+}
+
+// --- Sub-Component:  Workout Box ---
 function WorkoutBox({ day, dispatch }) {
-  const [localKcal, setLocalKcal] = useState(day?.workoutCalories ?? "");
+  const [localKcal, setLocalKcal] = useState(day?. workoutCalories ??  "");
   const [localDesc, setLocalDesc] = useState(day?.workoutDescription ?? "");
 
   useEffect(() => {
     setLocalKcal(day?.workoutCalories ?? "");
     setLocalDesc(day?.workoutDescription ?? "");
-  }, [day?.date, day?.workoutCalories, day?.workoutDescription]);
+  }, [day?. date, day?.workoutCalories, day?.workoutDescription]);
 
-  const handleKcalBlur = () => dispatch({ type: UPDATE_DAY_WORKOUT, payload: { date: day.date, workoutKcal: localKcal } });
-  const handleDescBlur = () => dispatch({ type: UPDATE_DAY_WORKOUT_DESC, payload: { date: day.date, workoutDesc: localDesc } });
-  const handleIntensityChange = (e) => dispatch({ type: UPDATE_DAY_INTENSITY, payload: { date: day.date, intensityFactor: e.target.value } });
+  const handleKcalBlur = () => dispatch({ type: UPDATE_DAY_WORKOUT, payload: { date: day. date, workoutKcal: localKcal } });
+  const handleDescBlur = () => dispatch({ type: UPDATE_DAY_WORKOUT_DESC, payload: { date: day. date, workoutDesc: localDesc } });
+  const handleIntensityChange = (e) => dispatch({ type: UPDATE_DAY_INTENSITY, payload:  { date: day.date, intensityFactor: e.target.value } });
 
   return (
     <div className="meta-card workout-card">
@@ -63,9 +95,9 @@ function WorkoutBox({ day, dispatch }) {
             onBlur={handleKcalBlur}
           />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex:  1 }}>
           <small className="muted">Intensity</small>
-          <select className="input-full" value={day?.intensityFactor ?? ""} onChange={handleIntensityChange}>
+          <select className="input-full" value={day?. intensityFactor ??  ""} onChange={handleIntensityChange}>
             <option value="">— None —</option>
             <option value="0.5">0.5 — Light Recovery</option>
             <option value="0.8">0.8 — Light Effort</option>
@@ -80,7 +112,7 @@ function WorkoutBox({ day, dispatch }) {
         <div>
           <small className="muted">Note</small>
           <input 
-            type="text" maxLength="60" className="input-full" placeholder="e.g. Chest Day, 5k Run"
+            type="text" maxLength="60" className="input-full" placeholder="e.g.  Chest Day, 5k Run"
             value={localDesc}
             onChange={(e) => setLocalDesc(e.target.value)}
             onBlur={handleDescBlur}
@@ -98,15 +130,16 @@ export default function DayLog() {
 
   // URL Date Sync
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(location. search);
     const queryDate = params.get("date");
     if (queryDate && isValidDateString(queryDate)) {
-      dispatch({ type: "SET_SELECTED_DATE", payload: queryDate });
+      dispatch({ type: "SET_SELECTED_DATE", payload:  queryDate });
     }
   }, [location.search, dispatch]);
 
   const selectedDate = state.selectedDate;
-  const { tdee, totalIntake, netKcal } = getDayDerived(state, selectedDate);
+  const derived = getDayDerived(state, selectedDate);
+  const { tdee, totalIntake, netKcal } = derived;
 
   // Form States
   const [newMealFoodSearch, setNewMealFoodSearch] = useState({ lunch: "", dinner: "", extra: "" });
@@ -114,13 +147,10 @@ export default function DayLog() {
   const [newQuantity, setNewQuantity] = useState({ lunch: "1", dinner: "1", extra: "1" });
   const [editingMealId, setEditingMealId] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState("");
-
-  // NEW: which meal tab is active
   const [activeMealId, setActiveMealId] = useState("lunch");
-
-  // Active meal meta
-  const activeMealDef =
-    MEAL_TYPES.find((m) => m.id === activeMealId) || MEAL_TYPES[0];
+  
+  // Mobile:  breakdown toggle
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const allFoods = state.foodItems || [];
   const favouriteFoods = allFoods.filter((f) => f.isFavourite);
@@ -128,7 +158,7 @@ export default function DayLog() {
   // --- Handlers ---
   const addMealEntry = (mealType, food, qty) => {
     const quantityNumber = Number(qty);
-    if (!food || !quantityNumber || quantityNumber <= 0) return;
+    if (! food || !quantityNumber || quantityNumber <= 0) return;
     dispatch({
       type: "ADD_MEAL_ENTRY",
       payload: {
@@ -142,8 +172,8 @@ export default function DayLog() {
   };
 
   const handleQuickAddFavourite = (mealType, food) => {
-    setNewMealFoodSearch((prev) => ({ ...prev, [mealType]: food.name }));
-    setNewMealFoodId((prev) => ({ ...prev, [mealType]: food.id }));
+    setNewMealFoodSearch((prev) => ({ ...prev, [mealType]: food. name }));
+    setNewMealFoodId((prev) => ({ ...prev, [mealType]:  food.id }));
     addMealEntry(mealType, food, 1);
   };
 
@@ -152,7 +182,7 @@ export default function DayLog() {
     const quantity = parseFloat(newQuantity[mealType] || "0");
     const foodId = newMealFoodId[mealType];
     const food = allFoods.find((f) => f.id === foodId);
-    if (!food || quantity <= 0) return alert("Please select a valid food and quantity.");
+    if (! food || quantity <= 0) return alert("Please select a valid food and quantity.");
     
     addMealEntry(mealType, food, quantity);
     setNewMealFoodSearch((prev) => ({ ...prev, [mealType]: "" }));
@@ -164,14 +194,16 @@ export default function DayLog() {
     const qty = parseFloat(editingQuantity);
     if (!qty || qty <= 0) return alert("Quantity must be > 0");
     dispatch({ type: "UPDATE_MEAL_ENTRY", payload: { date: selectedDate, mealId: meal.id, quantity: qty } });
-    setEditingMealId(null); setEditingQuantity("");
+    setEditingMealId(null);
+    setEditingQuantity("");
   };
 
   // --- Derived Data ---
   const dayLog = useMemo(() => state.dayLogs[selectedDate] || {
-    date: selectedDate, activityFactor: state.profile.defaultActivityFactor ?? 1.2,
+    date: selectedDate, activityFactor: state.profile.defaultActivityFactor ??  1.2,
     hydrationLitres: 0, weightKg: null, notes: "", meals: [],
-    workoutCalories: 0, intensityFactor: null, workoutDescription: ""
+    workoutCalories: 0, intensityFactor: null, workoutDescription: "",
+    activityMode: "manual"
   }, [state.dayLogs, selectedDate, state.profile]);
 
   const effectiveWorkout = effectiveWorkoutKcal(dayLog);
@@ -186,14 +218,25 @@ export default function DayLog() {
     return grouped;
   }, [dayLog.meals]);
 
-  // Active meal kcal
   const activeMealKcal = (mealsByType[activeMealId] || []).reduce(
-    (sum, m) => sum + (m.totalKcal ?? 0),
+    (sum, m) => sum + (m.totalKcal ??  0),
     0
   );
 
   // --- Meta Handlers ---
   const updateMeta = (patch) => dispatch({ type: "UPDATE_DAY_META", payload: { date: selectedDate, patch } });
+
+  // --- TDEE Breakdown values ---
+  const breakdown = derived.tdeeBreakdown || {};
+  const bmrVal = Math.round(dayLog.bmrSnapshot ??  state.profile.bmr ??  0);
+  const afDisplay = breakdown.afComputed ??  dayLog.activityFactor ??  state.profile.defaultActivityFactor ??  1.2;
+  const neat = breakdown.neat ?? 0;
+  const eatNet = (breakdown.eat && (typeof breakdown.eat. totalNet !== "undefined" ? breakdown.eat.totalNet :  breakdown.eat)) ?? breakdown.eat ??  0;
+  const maintenance = breakdown.maintenancePlusActivity ?? Math.round(bmrVal * afDisplay);
+  const tef = breakdown.tef ?? Math.round((totalIntake || 0) * 0.10);
+  const tdeeVal = breakdown.tdee ?? Math.round(maintenance + tef);
+
+  const currentMode = dayLog.activityMode ??  "manual";
 
   return (
     <div className="daylog-page">
@@ -202,94 +245,154 @@ export default function DayLog() {
       <div className="daylog-header">
         <div className="daylog-title">
           <h1><Calendar size={28} className="text-blue" /> Day Log</h1>
-          <p className="daylog-subtitle">Track your nutrition and progress.</p>
+          <p className="daylog-subtitle">Track your nutrition and progress. </p>
         </div>
         <div className="date-input-group">
           <label>Selected Date</label>
           <input 
             type="date" 
             value={selectedDate} 
-            onChange={(e) => e.target.value && dispatch({ type: "SET_SELECTED_DATE", payload: e.target.value })} 
+            onChange={(e) => e.target.value && dispatch({ type: "SET_SELECTED_DATE", payload: e. target.value })} 
             className="styled-date-input"
           />
         </div>
       </div>
 
-      {/* 2. ✅ FIXED: Consolidated Hero Stats + Inputs Card */}
-      {/* ------------------ REPLACE THIS BLOCK WITH THE FOLLOWING ------------------ */}
-
-      {/* HERO: summary + activity controls */}
-      <section className="hero-card grid lg:grid-cols-3 gap-4 p-4 rounded shadow-sm bg-white">
-        {/* Col 1: Summary numbers */}
-        <div className="col-span-1">
-          <h3 className="text-lg font-semibold">Calories</h3>
-          <div className="mt-2">
-            <div className="text-2xl font-bold">{Math.round(totalIntake || 0)} kcal</div>
-            <div className="text-sm text-slate-600">Net: {netKcal < 0 ? "" : "+"}{Math.round(netKcal)} • Target (TDEE): {Math.round(tdee || 0)}</div>
+      {/* 2. Hero Card */}
+      <section className="hero-card">
+        
+        {/* ========== MOBILE LAYOUT ========== */}
+        <div className="mobile-hero">
+          {/* Top:  Ring + Key Stats */}
+          <div className="mobile-hero-top">
+            <CalorieRing intake={totalIntake || 0} target={tdee || 2000} />
+            
+            <div className="mobile-hero-stats">
+              <div className="mobile-stat-row">
+                <span className="mobile-stat-label">Target</span>
+                <span className="mobile-stat-value">{Math.round(tdee || 0)} kcal</span>
+              </div>
+              <div className="mobile-stat-row">
+                <span className="mobile-stat-label">Net</span>
+                <span className={`mobile-stat-value ${netKcal >= 0 ?  "text-green" : "text-red"}`}>
+                  {netKcal >= 0 ? "+" : ""}{Math.round(netKcal)}
+                </span>
+              </div>
+              <div className="mobile-stat-row">
+                <span className="mobile-stat-label">AF</span>
+                <span className="mobile-stat-value">{Number(afDisplay).toFixed(2)}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-4">
-            <div className="text-sm text-slate-500">Hydration</div>
-            <div className="text-base">{(dayLog.hydrationLitres ?? 0).toFixed(1)} L</div>
-            <div className="text-xs text-slate-400">{dayLog.hydrationLitres >= 3 ? "Great job!" : "Keep drinking water."}</div>
+          {/* Quick Stats:  Hydration, Weight, Workout */}
+          <div className="mobile-quick-stats">
+            <div className="mobile-quick-stat">
+              <Droplet size={16} className="mobile-quick-stat-icon" />
+              <div className="mobile-quick-stat-value">{(dayLog.hydrationLitres ??  0).toFixed(1)} L</div>
+              <div className="mobile-quick-stat-label">Hydration</div>
+            </div>
+            <div className="mobile-quick-stat">
+              <Scale size={16} className="mobile-quick-stat-icon" />
+              <div className="mobile-quick-stat-value">{dayLog.weightKg ??  "--"} kg</div>
+              <div className="mobile-quick-stat-label">Weight</div>
+            </div>
+            <div className="mobile-quick-stat">
+              <Zap size={16} className="mobile-quick-stat-icon" />
+              <div className="mobile-quick-stat-value">{effectiveWorkout ??  0}</div>
+              <div className="mobile-quick-stat-label">Workout</div>
+            </div>
           </div>
 
-          <div className="mt-3">
-            <div className="text-sm text-slate-500">Weight</div>
-            <div className="text-base">{dayLog.weightKg ?? "--"} kg</div>
-          </div>
-
-          <div className="mt-3">
-            <div className="text-sm text-slate-500">Workout Burn</div>
-            <div className="text-base">{effectiveWorkout ?? 0} kcal</div>
-          </div>
-        </div>
-
-        {/* Col 2: Activity / AF controls */}
-        <div className="col-span-1">
-          <h3 className="text-lg font-semibold">Activity Factor</h3>
-
-          <div className="mt-2">
-            <label className="block text-sm">Mode</label>
-            <div className="mt-1 flex gap-2">
-              <label className="inline-flex items-center">
-                <input type="radio" name="activityMode" checked={(dayLog.activityMode ?? "manual") === "manual"} onChange={() => updateMeta({ activityMode: "manual" })} />
-                <span className="ml-2 text-sm">Manual</span>
+          {/* Activity Mode */}
+          <div className="mobile-activity-row">
+            <span className="mobile-activity-label">
+              <Activity size={12} /> Mode
+            </span>
+            <div className="mobile-mode-pills">
+              <label className={`mobile-mode-pill ${currentMode === "manual" ? "is-active" : ""}`}>
+                <input type="radio" name="mobileMode" checked={currentMode === "manual"} onChange={() => updateMeta({ activityMode: "manual" })} />
+                Manual
               </label>
-              <label className="inline-flex items-center">
-                <input type="radio" name="activityMode" checked={(dayLog.activityMode ?? "") === "advanced_neat"} onChange={() => updateMeta({ activityMode: "advanced_neat" })} />
-                <span className="ml-2 text-sm">Advanced · NEAT</span>
+              <label className={`mobile-mode-pill ${currentMode === "advanced_neat" ? "is-active" :  ""}`}>
+                <input type="radio" name="mobileMode" checked={currentMode === "advanced_neat"} onChange={() => updateMeta({ activityMode: "advanced_neat" })} />
+                NEAT
               </label>
-              <label className="inline-flex items-center">
-                <input type="radio" name="activityMode" checked={(dayLog.activityMode ?? "") === "advanced_full"} onChange={() => updateMeta({ activityMode: "advanced_full" })} />
-                <span className="ml-2 text-sm">Advanced · Full</span>
+              <label className={`mobile-mode-pill ${currentMode === "advanced_full" ? "is-active" :  ""}`}>
+                <input type="radio" name="mobileMode" checked={currentMode === "advanced_full"} onChange={() => updateMeta({ activityMode: "advanced_full" })} />
+                Full
               </label>
             </div>
           </div>
 
-          <div className="mt-3">
-            <label className="block text-sm">Manual AF (if manual)</label>
+          {/* Manual AF Input */}
+          <div className="mobile-af-row">
+            <label>Manual AF</label>
             <input
               type="number"
               step="0.01"
               min="0.8"
               max="2.5"
-              value={Number(dayLog.activityFactor ?? state.profile.defaultActivityFactor ?? 1.2)}
+              value={Number(dayLog.activityFactor ??  state.profile.defaultActivityFactor ??  1.2)}
               onChange={(e) => updateMeta({ activityFactor: Number(e.target.value) || 1.0 })}
-              className="mt-1 p-2 border rounded w-full"
+              disabled={currentMode !== "manual"}
             />
-            <div className="text-xs text-slate-400 mt-1">
-              Tip: pick Manual for quick days. Choose Advanced to calculate AF from activities & NEAT.
+          </div>
+
+          {/* Collapsible TDEE Breakdown */}
+          <button 
+            type="button" 
+            className="mobile-breakdown-toggle"
+            onClick={() => setBreakdownOpen(!breakdownOpen)}
+          >
+            <span className="mobile-breakdown-toggle-left">
+              <Flame size={14} /> TDEE Breakdown
+            </span>
+            <span className="mobile-breakdown-toggle-right">
+              <span className="mobile-tdee-badge">{tdeeVal} kcal</span>
+              <ChevronDown size={16} className={`mobile-breakdown-chevron ${breakdownOpen ? "is-open" : ""}`} />
+            </span>
+          </button>
+
+          <div className={`mobile-breakdown-content ${breakdownOpen ? "is-open" : ""}`}>
+            <div className="mobile-breakdown-list">
+              <div className="mobile-breakdown-item">
+                <span className="mobile-breakdown-item-label">BMR</span>
+                <span className="mobile-breakdown-item-value">{bmrVal} kcal</span>
+              </div>
+              <div className="mobile-breakdown-item">
+                <span className="mobile-breakdown-item-label">Maintenance</span>
+                <span className="mobile-breakdown-item-value">{maintenance} kcal</span>
+              </div>
+              <div className="mobile-breakdown-item">
+                <span className="mobile-breakdown-item-label">NEAT</span>
+                <span className="mobile-breakdown-item-value">{neat} kcal</span>
+              </div>
+              <div className="mobile-breakdown-item">
+                <span className="mobile-breakdown-item-label">ΣEAT (net)</span>
+                <span className="mobile-breakdown-item-value">{eatNet} kcal</span>
+              </div>
+              <div className="mobile-breakdown-item">
+                <span className="mobile-breakdown-item-label">TEF (10%)</span>
+                <span className="mobile-breakdown-item-value">{tef} kcal</span>
+              </div>
+              <div className="mobile-breakdown-item is-total">
+                <span className="mobile-breakdown-item-label">TDEE</span>
+                <span className="mobile-breakdown-item-value">{tdeeVal} kcal</span>
+              </div>
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2">
-            <a href="/activity" className="px-3 py-1 rounded bg-indigo-600 text-white text-sm">Open Activity Tab</a>
+          {/* Action Buttons */}
+          <div className="mobile-actions">
+            <a href="/activity" className="hero-btn hero-btn-primary">
+              <TrendingUp size={14} /> Activity
+            </a>
             <button
-              className="px-3 py-1 rounded bg-gray-100"
+              type="button"
+              className="hero-btn hero-btn-secondary"
               onClick={() => {
-                // quick recompute: set same meta to force update
-                dispatch({ type: "UPDATE_DAY_META", payload: { date: selectedDate, patch: { activityFactor: dayLog.activityFactor ?? state.profile.defaultActivityFactor } } });
+                dispatch({ type: "UPDATE_DAY_META", payload:  { date: selectedDate, patch:  { activityFactor: dayLog.activityFactor ??  state.profile.defaultActivityFactor } } });
               }}
             >
               Recompute
@@ -297,38 +400,140 @@ export default function DayLog() {
           </div>
         </div>
 
-        {/* Col 3: Breakdown (from tdeeBreakdown if available) */}
-        <div className="col-span-1">
-          <h3 className="text-lg font-semibold">TDEE Breakdown</h3>
-          <div className="mt-2 text-sm space-y-2">
-            {/* defensive access — tdeeBreakdown may be a nested object in getDayDerived result */}
-            {typeof getDayDerived === "function" && (() => {
-              const breakdown = (getDayDerived && getDayDerived(state, selectedDate)?.tdeeBreakdown) || {};
-              // fallback values
-              const afDisplay = breakdown.afComputed ?? dayLog.activityFactor ?? state.profile.defaultActivityFactor ?? 1.2;
-              const neat = breakdown.neat ?? 0;
-              const eatNet = (breakdown.eat && (typeof breakdown.eat.totalNet !== "undefined" ? breakdown.eat.totalNet : breakdown.eat)) ?? breakdown.eat ?? 0;
-              const maintenance = breakdown.maintenancePlusActivity ?? Math.round((dayLog.bmrSnapshot ?? state.profile.bmr ?? 0) * afDisplay);
-              const tef = breakdown.tef ?? Math.round((totalIntake || 0) * 0.10);
-              const tdeeVal = breakdown.tdee ?? Math.round(maintenance + tef);
-              return (
-                <div>
-                  <div className="flex justify-between"><div>BMR</div><div>{Math.round(dayLog.bmrSnapshot ?? state.profile.bmr ?? 0)} kcal</div></div>
-                  <div className="flex justify-between"><div>AF</div><div>{Number(afDisplay).toFixed(3)}</div></div>
-                  <div className="flex justify-between"><div>Maintenance (BMR + NEAT)</div><div>{maintenance} kcal</div></div>
-                  <div className="flex justify-between"><div>NEAT</div><div>{neat} kcal</div></div>
-                  <div className="flex justify-between"><div>ΣEAT (net)</div><div>{eatNet} kcal</div></div>
-                  <div className="flex justify-between"><div>TEF (10%)</div><div>{tef} kcal</div></div>
-                  <hr className="my-2" />
-                  <div className="flex justify-between font-semibold"><div>TDEE</div><div>{tdeeVal} kcal</div></div>
-                </div>
-              );
-            })()}
+        {/* ========== DESKTOP LAYOUT ========== */}
+        {/* Column 1: Calories Summary */}
+        <div className="hero-col">
+          <div className="hero-col-header">
+            <Flame size={14} /> Calories
+          </div>
+          
+          <div className="hero-primary-stat">
+            <div className="hero-primary-value">{Math.round(totalIntake || 0)} kcal</div>
+            <div className="hero-primary-sub">
+              Net: <span className={netKcal >= 0 ?  "text-green" : "text-red"}>
+                {netKcal >= 0 ? "+" :  ""}{Math.round(netKcal)}
+              </span> • Target: {Math.round(tdee || 0)}
+            </div>
+          </div>
+
+          <div className="hero-secondary-stats">
+            <div className="hero-secondary-item">
+              <span className="hero-secondary-label"><Droplet size={12} /> Hydration</span>
+              <span className="hero-secondary-value">{(dayLog.hydrationLitres ?? 0).toFixed(1)} L</span>
+              <span className="hero-secondary-hint">
+                {dayLog.hydrationLitres >= 3 ? "Great job!" : "Keep drinking water. "}
+              </span>
+            </div>
+            
+            <div className="hero-secondary-item">
+              <span className="hero-secondary-label"><Scale size={12} /> Weight</span>
+              <span className="hero-secondary-value">{dayLog.weightKg ?? "--"} kg</span>
+            </div>
+            
+            <div className="hero-secondary-item">
+              <span className="hero-secondary-label"><Zap size={12} /> Workout</span>
+              <span className="hero-secondary-value">{effectiveWorkout ?? 0} kcal</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Column 2: Activity Factor Controls */}
+        <div className="hero-col">
+          <div className="hero-col-header">
+            <Activity size={14} /> Activity Factor
+          </div>
+
+          <div className="activity-mode-group">
+            <span className="activity-mode-label">Mode</span>
+            <div className="activity-mode-options">
+              <label className={`activity-mode-option ${currentMode === "manual" ? "is-active" : ""}`}>
+                <input type="radio" name="activityMode" checked={currentMode === "manual"} onChange={() => updateMeta({ activityMode:  "manual" })} />
+                Manual
+              </label>
+              <label className={`activity-mode-option ${currentMode === "advanced_neat" ? "is-active" : ""}`}>
+                <input type="radio" name="activityMode" checked={currentMode === "advanced_neat"} onChange={() => updateMeta({ activityMode: "advanced_neat" })} />
+                NEAT
+              </label>
+              <label className={`activity-mode-option ${currentMode === "advanced_full" ?  "is-active" : ""}`}>
+                <input type="radio" name="activityMode" checked={currentMode === "advanced_full"} onChange={() => updateMeta({ activityMode: "advanced_full" })} />
+                Full
+              </label>
+            </div>
+          </div>
+
+          <div className="manual-af-group">
+            <label>Manual AF</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.8"
+              max="2.5"
+              value={Number(dayLog.activityFactor ?? state.profile.defaultActivityFactor ??  1.2)}
+              onChange={(e) => updateMeta({ activityFactor: Number(e.target.value) || 1.0 })}
+              disabled={currentMode !== "manual"}
+            />
+            <p className="manual-af-hint">
+              Use Manual for quick logging. Choose NEAT or Full to auto-calculate from activities.
+            </p>
+          </div>
+
+          <div className="hero-actions">
+            <a href="/activity" className="hero-btn hero-btn-primary">
+              <TrendingUp size={14} /> Activity Tab
+            </a>
+            <button
+              type="button"
+              className="hero-btn hero-btn-secondary"
+              onClick={() => {
+                dispatch({ type:  "UPDATE_DAY_META", payload: { date: selectedDate, patch: { activityFactor:  dayLog.activityFactor ??  state.profile.defaultActivityFactor } } });
+              }}
+            >
+              Recompute
+            </button>
+          </div>
+        </div>
+
+        {/* Column 3: TDEE Breakdown */}
+        <div className="hero-col">
+          <div className="hero-col-header">
+            <Flame size={14} /> TDEE Breakdown
+          </div>
+
+          <div className="breakdown-list">
+            <div className="breakdown-row">
+              <span className="breakdown-row-label">BMR</span>
+              <span className="breakdown-row-value">{bmrVal} kcal</span>
+            </div>
+            <div className="breakdown-row">
+              <span className="breakdown-row-label">Activity Factor</span>
+              <span className="breakdown-row-value">{Number(afDisplay).toFixed(3)}</span>
+            </div>
+            <div className="breakdown-row">
+              <span className="breakdown-row-label">Maintenance</span>
+              <span className="breakdown-row-value">{maintenance} kcal</span>
+            </div>
+            <div className="breakdown-row">
+              <span className="breakdown-row-label">NEAT</span>
+              <span className="breakdown-row-value">{neat} kcal</span>
+            </div>
+            <div className="breakdown-row">
+              <span className="breakdown-row-label">ΣEAT (net)</span>
+              <span className="breakdown-row-value">{eatNet} kcal</span>
+            </div>
+            <div className="breakdown-row">
+              <span className="breakdown-row-label">TEF (10%)</span>
+              <span className="breakdown-row-value">{tef} kcal</span>
+            </div>
+            
+            <div className="breakdown-divider"></div>
+            
+            <div className="breakdown-row is-total">
+              <span className="breakdown-row-label">TDEE</span>
+              <span className="breakdown-row-value">{tdeeVal} kcal</span>
+            </div>
           </div>
         </div>
       </section>
-
-      {/* ------------------ END REPLACEMENT ------------------ */}
 
       {/* 3. Workout Section */}
       <section>
@@ -340,14 +545,13 @@ export default function DayLog() {
         <textarea 
           className="notes-textarea"
           placeholder="Daily notes, mood, or reflection..."
-          value={dayLog.notes}
-          onChange={(e) => dispatch({ type: "UPDATE_DAY_NOTES", payload: { date: selectedDate, notes: e.target.value } })}
+          value={dayLog. notes}
+          onChange={(e) => dispatch({ type: "UPDATE_DAY_NOTES", payload: { date: selectedDate, notes: e. target.value } })}
         />
       </section>
 
-      {/* 5. Meal Sections – single top bar tabs */}
+      {/* 5. Meal Sections */}
       <section className="meal-tabs-card">
-        {/* ✅ FIXED: Responsive Top bar */}
         <div className="meal-topbar">
           <div className="meal-top-tabs">
             {MEAL_TYPES.map((meal) => {
@@ -371,7 +575,6 @@ export default function DayLog() {
           </span>
         </div>
 
-        {/* Active meal content below the top bar */}
         {MEAL_TYPES.map((meal) => {
           const entries = mealsByType[meal.id] || [];
           if (meal.id !== activeMealId) return null;
@@ -387,7 +590,7 @@ export default function DayLog() {
                       key={f.id}
                       type="button"
                       className="chip-btn"
-                      onClick={() => handleQuickAddFavourite(meal.id, f)}
+                      onClick={() => handleQuickAddFavourite(meal. id, f)}
                     >
                       + {f.name}
                     </button>
@@ -396,7 +599,7 @@ export default function DayLog() {
               )}
 
               {/* Table */}
-              {entries.length > 0 ? (
+              {entries.length > 0 ?  (
                 <div className="table-responsive">
                   <table className="data-table meal-table">
                     <thead>
@@ -421,9 +624,7 @@ export default function DayLog() {
                                   type="number"
                                   className="input-small text-right"
                                   value={editingQuantity}
-                                  onChange={(e) =>
-                                    setEditingQuantity(e.target.value)
-                                  }
+                                  onChange={(e) => setEditingQuantity(e.target.value)}
                                   step="0.25"
                                 />
                               ) : (
@@ -431,9 +632,7 @@ export default function DayLog() {
                               )}
                             </td>
                             <td>{m.unitLabelSnapshot}</td>
-                            <td className="text-right">
-                              {m.kcalPerUnitSnapshot}
-                            </td>
+                            <td className="text-right">{m.kcalPerUnitSnapshot}</td>
                             <td className="text-right">
                               <strong>{m.totalKcal}</strong>
                             </td>
@@ -491,19 +690,13 @@ export default function DayLog() {
                   </table>
                 </div>
               ) : (
-                <div
-                  className="muted"
-                  style={{ textAlign: "center", padding: "1rem" }}
-                >
+                <div className="muted" style={{ textAlign: "center", padding: "1rem" }}>
                   No items logged yet.
                 </div>
               )}
 
               {/* Add form */}
-              <form
-                onSubmit={(e) => handleAddMeal(e, meal.id)}
-                className="add-meal-container"
-              >
+              <form onSubmit={(e) => handleAddMeal(e, meal. id)} className="add-meal-container">
                 <div className="form-row-compact">
                   <div style={{ flex: 2 }}>
                     <FoodAutocomplete
@@ -514,14 +707,8 @@ export default function DayLog() {
                         setNewMealFoodId((p) => ({ ...p, [meal.id]: null }));
                       }}
                       onSelectFood={(f) => {
-                        setNewMealFoodSearch((p) => ({
-                          ...p,
-                          [meal.id]: f.name,
-                        }));
-                        setNewMealFoodId((p) => ({
-                          ...p,
-                          [meal.id]: f.id,
-                        }));
+                        setNewMealFoodSearch((p) => ({ ...p, [meal. id]: f. name }));
+                        setNewMealFoodId((p) => ({ ...p, [meal.id]: f.id }));
                       }}
                       placeholder="Search food..."
                     />
@@ -533,12 +720,7 @@ export default function DayLog() {
                       placeholder="Qty"
                       step="0.25"
                       value={newQuantity[meal.id]}
-                      onChange={(e) =>
-                        setNewQuantity((p) => ({
-                          ...p,
-                          [meal.id]: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setNewQuantity((p) => ({ ...p, [meal.id]: e.target.value }))}
                     />
                   </div>
                   <button type="submit" className="btn-primary">
@@ -546,19 +728,8 @@ export default function DayLog() {
                   </button>
                 </div>
                 {newMealFoodId[meal.id] && (
-                  <div
-                    style={{
-                      fontSize: "0.85rem",
-                      color: "#718096",
-                      marginTop: "0.5rem",
-                    }}
-                  >
-                    Unit:{" "}
-                    {
-                      allFoods.find(
-                        (f) => f.id === newMealFoodId[meal.id]
-                      )?.unitLabel
-                    }
+                  <div style={{ fontSize: "0.85rem", color: "#718096", marginTop: "0.5rem" }}>
+                    Unit: {allFoods.find((f) => f.id === newMealFoodId[meal.id])?.unitLabel}
                   </div>
                 )}
               </form>

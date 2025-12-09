@@ -4,12 +4,12 @@
 .daylog-page {
   max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: var(--page-padding-y) var(--page-padding-x);
+  padding:  var(--page-padding-y) var(--page-padding-x);
 }
 
 /* --- HEADER --- */
 .daylog-header {
-  display: flex;
+  display:  flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
@@ -53,7 +53,684 @@
   color: var(--text);
 }
 
-/* --- HERO STATS + INPUTS CARD --- */
+/* =============================================================================
+   HERO CARD - Desktop Layout (3 columns)
+   ============================================================================= */
+
+.hero-card {
+  background: var(--surface);
+  border-radius: var(--card-radius);
+  padding: 1.25rem;
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .hero-card {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* --- Hero Column (each of the 3 sections) --- */
+.hero-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Add subtle divider between columns on desktop */
+@media (min-width: 768px) {
+  .hero-col:not(:last-child) {
+    border-right: 1px solid var(--border-subtle);
+    padding-right: 1.5rem;
+  }
+}
+
+/* --- Hero Column Header --- */
+.hero-col-header {
+  font-size: 0.75rem;
+  font-weight:  700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap:  0.4rem;
+}
+
+.hero-col-header svg {
+  opacity: 0.7;
+}
+
+/* --- Primary Stat Display (big number) --- */
+.hero-primary-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.hero-primary-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.hero-primary-sub {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.hero-primary-sub .text-green {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.hero-primary-sub .text-red {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* --- Secondary Stats (smaller items like Hydration, Weight) --- */
+.hero-secondary-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.hero-secondary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 80px;
+}
+
+.hero-secondary-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hero-secondary-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.hero-secondary-hint {
+  font-size: 0.65rem;
+  color: var(--text-soft);
+}
+
+/* --- Activity Mode Radio Group --- */
+.activity-mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.activity-mode-label {
+  font-size: 0.75rem;
+  font-weight:  600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.activity-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.activity-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius:  999px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.8rem;
+  font-weight:  500;
+  color: var(--text-soft);
+}
+
+.activity-mode-option:hover {
+  background: #e2e8f0;
+}
+
+.activity-mode-option.is-active {
+  background:  var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
+.activity-mode-option input[type="radio"] {
+  display: none;
+}
+
+/* --- Manual AF Input --- */
+.manual-af-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.manual-af-group label {
+  font-size:  0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.manual-af-group input {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+  max-width: 140px;
+}
+
+.manual-af-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.manual-af-group input:disabled {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.manual-af-hint {
+  font-size: 0.7rem;
+  color: var(--text-soft);
+  line-height: 1.4;
+  margin-top: 0.25rem;
+}
+
+/* --- Hero Action Buttons --- */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.hero-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight:  600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hero-btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.hero-btn-primary:hover {
+  background: var(--primary-strong);
+  transform: translateY(-1px);
+}
+
+.hero-btn-secondary {
+  background: var(--surface-muted);
+  color: var(--text);
+  border-color: var(--border-subtle);
+}
+
+.hero-btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+/* --- TDEE Breakdown List --- */
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+.breakdown-row-label {
+  color: var(--text-soft);
+}
+
+.breakdown-row-value {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0.5rem 0;
+}
+
+.breakdown-row.is-total {
+  padding-top: 0.5rem;
+}
+
+.breakdown-row.is-total .breakdown-row-label,
+.breakdown-row.is-total .breakdown-row-value {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+/* =============================================================================
+   MOBILE HERO LAYOUT - Compact Single-Screen View
+   ============================================================================= */
+
+@media (max-width: 767px) {
+  .hero-card {
+    padding: 1rem;
+    gap: 0;
+  }
+
+  /* Hide desktop columns on mobile */
+  .hero-col {
+    display: none;
+  }
+
+  /* Show mobile layout */
+  .hero-card .mobile-hero {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  /* Hide mobile layout on desktop */
+  .hero-card .mobile-hero {
+    display:  none;
+  }
+}
+
+/* --- Mobile Hero Container --- */
+.mobile-hero {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-hero {
+    display: block;
+  }
+}
+
+/* --- Mobile:  Top Row with Ring + Stats --- */
+.mobile-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom:  1rem;
+}
+
+/* Calorie Ring */
+.calorie-ring-container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.calorie-ring-svg {
+  transform: rotate(-90deg);
+  width: 100px;
+  height: 100px;
+}
+
+.calorie-ring-bg {
+  fill: none;
+  stroke: var(--border-subtle);
+  stroke-width: 8;
+}
+
+.calorie-ring-progress {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.calorie-ring-progress.over-target {
+  stroke:  var(--danger);
+}
+
+.calorie-ring-progress.near-target {
+  stroke: var(--success);
+}
+
+.calorie-ring-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.calorie-ring-value {
+  font-size: 1.25rem;
+  font-weight:  800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.calorie-ring-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Stats next to ring */
+.mobile-hero-stats {
+  flex:  1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mobile-stat-row:last-child {
+  border-bottom: none;
+}
+
+.mobile-stat-label {
+  font-size: 0.7rem;
+  font-weight:  600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mobile-stat-value {
+  font-size: 0.9rem;
+  font-weight:  700;
+  color: var(--text);
+}
+
+.mobile-stat-value.text-green {
+  color: var(--success);
+}
+
+.mobile-stat-value.text-red {
+  color: var(--danger);
+}
+
+/* --- Mobile: Quick Stats Row (Hydration, Weight, Workout) --- */
+.mobile-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mobile-quick-stat {
+  background: var(--surface-muted);
+  border-radius: 10px;
+  padding: 0.6rem 0.5rem;
+  text-align:  center;
+}
+
+.mobile-quick-stat-icon {
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.mobile-quick-stat-value {
+  font-size: 0.95rem;
+  font-weight:  700;
+  color: var(--text);
+}
+
+.mobile-quick-stat-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* --- Mobile: Activity Mode Compact --- */
+.mobile-activity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-activity-label {
+  font-size: 0.7rem;
+  font-weight:  600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mobile-mode-pills {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.mobile-mode-pill {
+  padding: 0.3rem 0.6rem;
+  border-radius:  999px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.7rem;
+  font-weight:  600;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-mode-pill.is-active {
+  background:  var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.mobile-mode-pill input {
+  display: none;
+}
+
+/* --- Mobile: AF Input Inline --- */
+.mobile-af-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-af-row label {
+  font-size:  0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.mobile-af-row input {
+  width: 70px;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.mobile-af-row input:disabled {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+/* --- Mobile: Collapsible TDEE Breakdown --- */
+.mobile-breakdown-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding:  0.6rem 0.75rem;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.mobile-breakdown-toggle:hover {
+  background: #e2e8f0;
+}
+
+.mobile-breakdown-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.mobile-breakdown-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-tdee-badge {
+  background: var(--primary);
+  color: white;
+  padding: 0.25rem 0.6rem;
+  border-radius:  999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.mobile-breakdown-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.mobile-breakdown-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+/* Breakdown content - collapsed by default */
+.mobile-breakdown-content {
+  max-height:  0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.mobile-breakdown-content.is-open {
+  max-height: 300px;
+}
+
+.mobile-breakdown-list {
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius:  8px;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
+}
+
+.mobile-breakdown-item-label {
+  color: var(--text-soft);
+}
+
+.mobile-breakdown-item-value {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-breakdown-item.is-total {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.mobile-breakdown-item.is-total .mobile-breakdown-item-label,
+.mobile-breakdown-item.is-total .mobile-breakdown-item-value {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* --- Mobile: Action Buttons --- */
+.mobile-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mobile-actions .hero-btn {
+  flex: 1;
+  justify-content: center;
+  padding: 0.6rem 0. 75rem;
+  font-size: 0.75rem;
+}
+
+/* =============================================================================
+   REST OF EXISTING STYLES (unchanged)
+   ============================================================================= */
+
+/* --- Legacy Hero Stats Card --- */
 .hero-stats-card {
   background: var(--surface);
   border-radius: var(--card-radius);
@@ -61,24 +738,21 @@
   border: 1px solid var(--border-card);
   box-shadow: var(--shadow-soft);
   margin-bottom: 1.5rem;
-  
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.75rem;
 }
 
-/* Individual stat display boxes (White card look) */
 .hero-stat {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   padding: 0.75rem;
-  background: #ffffff; /* Matches Dashboard hero cards */
+  background: #ffffff;
   border-radius: 12px;
   border: 1px solid var(--border-subtle);
 }
 
-/* Individual input boxes (Muted but editable feel) */
 .hero-input {
   display: flex;
   flex-direction: column;
@@ -102,7 +776,6 @@
   margin-top: 0.25rem;
 }
 
-/* Stat card headers */
 .sc-header {
   font-size: var(--text-xs);
   font-weight: 600;
@@ -116,7 +789,7 @@
 
 .sc-value {
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight:  700;
 }
 
 .sc-footer {
@@ -124,7 +797,6 @@
   color: var(--text-soft);
 }
 
-/* Responsive: Tighten on very small screens */
 @media (max-width: 480px) {
   .hero-stats-card {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -207,7 +879,6 @@
   overflow: hidden;
 }
 
-/* Top Bar */
 .meal-topbar {
   display: flex;
   flex-wrap: wrap;
@@ -221,7 +892,7 @@
 .meal-top-tabs {
   display: flex;
   gap: clamp(0.25rem, 1vw, 0.5rem);
-  flex: 1 1 auto;
+  flex:  1 1 auto;
   min-width: 0;
 }
 
@@ -230,7 +901,7 @@
   align-items: center;
   gap: clamp(0.3rem, 1vw, 0.5rem);
   padding: clamp(0.4rem, 1.5vw, 0.6rem) clamp(0.6rem, 2vw, 1rem);
-  border-radius: 999px; /* Pill shape */
+  border-radius: 999px;
   border: none;
   background: #f8fafc;
   color: #64748b;
@@ -267,14 +938,13 @@
   padding: 0.4rem 0.8rem;
   border-radius: 999px;
   background: #f1f5f9;
-  font-size: clamp(0.75rem, 1.5vw, 0.85rem);
+  font-size: clamp(0.75rem, 1. 5vw, 0.85rem);
   font-weight: 700;
   color: #1e293b;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-/* On very narrow screens, stack badge below tabs */
 @media (max-width: 420px) {
   .meal-topbar {
     flex-direction: column;
@@ -295,7 +965,6 @@
   padding: 1.25rem;
 }
 
-/* Quick Add Row */
 .quick-add-row {
   display: flex;
   flex-wrap: wrap;
@@ -341,7 +1010,7 @@
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse:  collapse;
   font-size: var(--text-xs);
 }
 
@@ -450,7 +1119,7 @@
 .input-full {
   width: 100%;
   padding: 0.45rem 0.6rem;
-  border-radius: 8px;
+  border-radius:  8px;
   border: 1px solid var(--border-subtle);
   font: inherit;
   background: var(--surface);
@@ -481,6 +1150,10 @@
 
 .text-green {
   color: var(--success);
+}
+
+.text-red {
+  color: var(--danger);
 }
 
 .text-orange {
