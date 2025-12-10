@@ -11,6 +11,18 @@ function toNum(x, fallback = 0) {
 function clamp01(x) { return Math.max(0, Math.min(1, x)); }
 function round(x) { return Math.round(x); }
 
+// safeNum: return 0 for non-finite values
+export function safeNum(x) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : 0;
+}
+
+// csvQuote: quote and escape string for CSV fields
+export function csvQuote(v = "") {
+  const s = v === null || v === undefined ? "" : String(v);
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 // ---------- Legacy helpers (kept for compatibility) ----------
 export function safeGet(obj, ...keys) {
   for (const k of keys) {

@@ -1,8 +1,7 @@
 // src/components/stats/TDEEDecomposition.jsx
 import React, { useMemo, useState } from "react";
 import { useAppState } from "../../context/AppStateContext";
-import { dateToKey } from "../../utils/calculations";
-import { TrendingUp } from "lucide-react"; // Not used but if needed for icon
+import { dateToKey, safeNum } from "../../utils/calculations";
 import "../../styles/stats/TDEEDecomposition.css";
 
 // Simple helpers (copied from Stats.jsx)
@@ -17,11 +16,6 @@ function isoDaysRange(endIso, count) {
   return arr;
 }
 
-function safeNum(x) {
-  const n = Number(x);
-  return Number.isFinite(n) ? n : 0;
-}
-
 const STACK_COLORS = {
   bmr: "#f97316", // orange
   neat: "#60a5fa", // blue
@@ -32,6 +26,16 @@ const STACK_COLORS = {
 export default function TDEEDecomposition() {
   const { state, getDayDerived } = useAppState();
   const { profile, dayLogs } = state;
+
+  const derivedByDate = useMemo(() => {
+    const map = {};
+    const keys = Object.keys(dayLogs || {});
+    for (const k of keys) {
+      const dk = dateToKey(k);
+      if (dk) map[dk] = getDayDerived(state, dk);
+    }
+    return map;
+  }, [Object.keys(dayLogs || {}).join(",")]);
 
   const defaultAF = profile?.defaultActivityFactor ?? 1.2;
 
@@ -63,9 +67,11 @@ export default function TDEEDecomposition() {
     [baseDecompositionDate, decompositionDays]
   );
 
+  const dayLogsDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
+
   const decompositionRows = useMemo(() => {
     return decompositionDateKeys.map((dk) => {
-      const derived = getDayDerived(state, dk) || {};
+      const derived = derivedByDate[dk] || {};
       const breakdown = derived.tdeeBreakdown || {};
 
       const bmr = safeNum(
@@ -116,7 +122,7 @@ export default function TDEEDecomposition() {
         intake,
       };
     });
-  }, [state, decompositionDateKeys, getDayDerived, profile]);
+  }, [decompositionDateKeys, derivedByDate, dayLogsDep, profile?.bmr]);
 
   // Display rows: reverse to show most recent at top (newest first)
   const displayDecompositionRows = useMemo(
@@ -172,6 +178,7 @@ export default function TDEEDecomposition() {
             className="stats-decomposition-select"
             value={decompositionDays}
             onChange={(e) => setDecompositionDays(Number(e.target.value))}
+            aria-label="Choose decomposition window"
           >
             <option value={7}>Last 7 days</option>
             <option value={14}>Last 14 days</option>
@@ -181,6 +188,7 @@ export default function TDEEDecomposition() {
             type="button"
             className="stats-toggle-btn"
             onClick={() => setShowDecomposition((s) => !s)}
+            aria-label={`Toggle ${showDecomposition ? "hide" : "show"} decomposition`}
           >
             {showDecomposition ? "Hide" : "Show"}
           </button>

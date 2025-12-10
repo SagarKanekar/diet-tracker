@@ -5,6 +5,8 @@ import {
   dateToKey,
   fmtNum,
   computeDayMealTotals,
+  safeNum,
+  csvQuote,
 } from "../../utils/calculations";
 import { Calendar as CalendarIcon, Download } from "lucide-react";
 import "../../styles/stats/DailyStatsMatrix.css";
@@ -122,6 +124,16 @@ export default function DailyStatsMatrix() {
   const { state, getDayDerived } = useAppState();
   const { profile, dayLogs } = state;
 
+  const derivedByDate = useMemo(() => {
+    const map = {};
+    const keys = Object.keys(dayLogs || {});
+    for (const k of keys) {
+      const dateKey = dateToKey(k);
+      if (dateKey) map[dateKey] = getDayDerived(state, dateKey);
+    }
+    return map;
+  }, [Object.keys(dayLogs || {}).join(','), profile?.bmr]);
+
   const [pickedDate, setPickedDate] = useState("");
   const [pageSize, setPageSize] = useState(7);
   const [page, setPage] = useState(0);
@@ -141,6 +153,8 @@ export default function DailyStatsMatrix() {
     []
   );
 
+  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
+
   // Build allDays (restored to original logic from Stats.jsx, newest first)
   const allDays = useMemo(() => {
     const entries = Object.values(dayLogs || {});
@@ -149,8 +163,10 @@ export default function DailyStatsMatrix() {
         const date = dateToKey(day.date || day.dateKey);
         if (!date) return null;
 
-        const derived = getDayDerived(state, date);
-        const { tdee, totalIntake, tdeeBreakdown } = derived;
+        const derived = derivedByDate[date] || {};
+        const tdee = derived.tdee || 0;
+        const totalIntake = derived.totalIntake || 0;
+        const tdeeBreakdown = derived.tdeeBreakdown || {};
         const totals = computeDayMealTotals(day);
 
         const deficit = tdee - totalIntake;
@@ -208,7 +224,7 @@ export default function DailyStatsMatrix() {
 
     mapped.sort((a, b) => new Date(b.date) - new Date(a.date));
     return mapped;
-  }, [dayLogs, state, profile, getDayDerived]);
+  }, [dayKeysDep, derivedByDate, profile?.defaultActivityFactor]);
 
   const filteredDays = useMemo(() => {
     if (!pickedDate) return allDays;
@@ -258,12 +274,6 @@ export default function DailyStatsMatrix() {
   const mobileDays = sortedDays;
   const hasData = !!sortedDays.length;
 
-  // Helper function (restored from original)
-  function safeNum(x) {
-    const n = Number(x);
-    return Number.isFinite(n) ? n : 0;
-  }
-
   const formatCellValue = (rowConfig, rawValue) => {
     if (rawValue === null || rawValue === undefined || rawValue === "") {
       return "-";
@@ -308,14 +318,15 @@ export default function DailyStatsMatrix() {
       group.rows.forEach((row) => {
         const label = `${group.label} – ${row.label}`;
         const values = pageDays.map((day) => {
-          const value = day[row.field];
-          return formatCellValue(row, value);
+          const rawValue = day[row.field];
+          const value = formatCellValue(row, rawValue);
+          return value;
         });
-        rowsCsv.push([label, ...values].join(","));
+        rowsCsv.push([csvQuote(label), ...values.map((v) => csvQuote(v))].join(","));
       });
     });
 
-    const csv = [headers.join(","), ...rowsCsv].join("\n");
+    const csv = [headers.map(csvQuote).join(","), ...rowsCsv].join("\n");
     const blob = new Blob([csv], {
       type: "text/csv;charset=utf-8;",
     });

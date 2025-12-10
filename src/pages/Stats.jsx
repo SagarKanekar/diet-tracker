@@ -9,7 +9,19 @@ import "../styles/Stats.css";
 
 export default function Stats() {
   const { state, getDayDerived } = useAppState();
-  const { dayLogs } = state;
+  const { dayLogs, profile } = state;
+
+  const derivedByDate = useMemo(() => {
+    const map = {};
+    const keys = Object.keys(dayLogs || {});
+    for (const k of keys) {
+      const dateKey = dateToKey(k);
+      if (dateKey) map[dateKey] = getDayDerived(state, dateKey);
+    }
+    return map;
+  }, [Object.keys(dayLogs || {}).join(','), profile?.bmr]);
+
+  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
 
   // Summary metrics for hero section (restored to original: no workoutDays)
   const summary = useMemo(() => {
@@ -34,7 +46,7 @@ export default function Stats() {
       const date = dateToKey(dateKey);
       if (!date) continue;
 
-      const derived = getDayDerived(state, date) || {};
+      const derived = derivedByDate[date] || {};
       const tdee = derived.tdee || 0;
       const total = derived.totalIntake || 0;
 
@@ -53,7 +65,7 @@ export default function Stats() {
       avgDeficit: daysLogged ? totalDeficit / daysLogged : 0,
       estTotalDeltaKg,
     };
-  }, [dayLogs, state, getDayDerived]);
+  }, [dayKeysDep, derivedByDate]);
 
   return (
     <div className="stats-page">
