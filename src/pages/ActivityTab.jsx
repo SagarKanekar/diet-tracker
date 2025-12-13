@@ -10,6 +10,17 @@ function uid(prefix = "act") {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function normalizeActivitiesInput(v) {
+  if (Array.isArray(v)) return v;
+  if (v && typeof v === "object") {
+    // support { activities: [...] } and keyed objects { id1: {...}, id2: {...} }
+    if (Array.isArray(v.activities)) return v.activities;
+    const values = Object.values(v);
+    return values.length ? values : [];
+  }
+  return [];
+}
+
 export default function ActivityTab() {
   const { state, dispatch, getDayDerived } = useAppState();
   const date = state.selectedDate;
@@ -17,7 +28,7 @@ export default function ActivityTab() {
   const profile = state.profile || {};
 
   // Local editable activities list (mirrors day.activities)
-  const [activities, setActivities] = useState(Array.isArray(day.activities) ? day.activities : []);
+  const [activities, setActivities] = useState(normalizeActivitiesInput(day.activities));
 
   // NEAT survey state (steps + survey fields)
   const [steps, setSteps] = useState(day.steps ?? "");
@@ -27,12 +38,12 @@ export default function ActivityTab() {
 
   useEffect(() => {
     // Keep local activities synced when changing selectedDate externally
-    setActivities(Array.isArray(day.activities) ? day.activities : []);
+    setActivities(normalizeActivitiesInput(day.activities));
     setSteps(day.steps ?? "");
     setSubjective(day.survey?.subjective ?? 50);
     setStandingHours(day.survey?.standingHours ?? 0);
     setActiveCommute(day.survey?.activeCommute ?? false);
-  }, [date]);
+  }, [date, day.activities]);
 
   // Determine weight to use: day-level first, then profile fallbacks
   const effectiveWeightKg = useMemo(() => {
@@ -47,15 +58,8 @@ export default function ActivityTab() {
 
   // computed preview of totals (pass effective weight & bmr snapshot)
   const eatTotals = useMemo(() => {
-    return sumEATFromActivities({ activities, profile: effectiveProfile });
-  }, [
-    activities,
-    effectiveProfile,
-    profile?.WALK_KCAL_PER_KG_PER_KM,
-    profile?.RUN_KCAL_PER_KG_PER_KM,
-    profile?.STEP_KCAL_CONST,
-    profile?.DEFAULT_TEF_RATIO,
-  ]);
+    return sumEATFromActivities(activities, effectiveProfile);
+  }, [ activities, effectiveProfile, profile?.WALK_KCAL_PER_KG_PER_KM, profile?.RUN_KCAL_PER_KG_PER_KM, profile?.STEP_KCAL_CONST, profile?.DEFAULT_TEF_RATIO ]);
 
   // compute NEAT preview from local steps/survey for quick feedback
   const neatPreview = useMemo(() => {
