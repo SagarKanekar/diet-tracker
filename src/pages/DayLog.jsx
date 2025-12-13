@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 import { 
   useAppState, 
 } from "../context/AppStateContext";
-import FoodAutocomplete from "../components/FoodAutocomplete";
+import FoodAutocomplete from "../components/daylog/FoodAutocomplete";
 
 // Icons
 import { 

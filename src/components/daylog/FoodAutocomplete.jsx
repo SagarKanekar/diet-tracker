@@ -1,5 +1,6 @@
 // src/components/FoodAutocomplete.jsx
 import React, { useState, useMemo } from "react";
+import "../../styles/daylog/FoodAutocomplete.css";
 
 /**
  * Props:
@@ -23,17 +24,13 @@ export default function FoodAutocomplete({
     if (!q) return [];
     return foods
       .filter((f) => f.name.toLowerCase().includes(q))
-      .slice(0, 8); // limit to 8 suggestions
+      .slice(0, 8);
   }, [foods, value]);
 
   const handleChange = (e) => {
     const next = e.target.value;
     onChangeText(next);
-    if (next.trim()) {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
+    setIsOpen(Boolean(next.trim()));
   };
 
   const handleSelect = (food) => {
@@ -44,55 +41,46 @@ export default function FoodAutocomplete({
   const showList = isOpen && suggestions.length > 0;
 
   return (
-    <div style={{ position: "relative", width: "100%" }}>
+    <div className="food-autocomplete">
       <input
+        type="text"
         value={value}
         onChange={handleChange}
         onFocus={() => {
           if (suggestions.length > 0) setIsOpen(true);
         }}
         onBlur={() => {
-          // small delay so a click on suggestion still registers
+          // allow click on suggestion to register
           setTimeout(() => setIsOpen(false), 150);
         }}
         placeholder={placeholder}
-        style={{ width: "100%" }}
+        className="food-autocomplete-input"
       />
 
       {showList && (
-        <div
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            backgroundColor: "#ffffff",
-            color: "#111111",
-            border: "1px solid #ccc",
-            zIndex: 20,
-            maxHeight: "200px",
-            overflowY: "auto",
-            fontSize: 14,
-          }}
-        >
+        <div className="food-autocomplete-dropdown">
           {suggestions.map((food) => (
             <div
               key={food.id}
+              className="food-autocomplete-item"
               onMouseDown={(e) => {
-                // prevent blur from input before click
-                e.preventDefault();
+                e.preventDefault(); // prevent input blur
                 handleSelect(food);
               }}
-              style={{
-                padding: "4px 8px",
-                cursor: "pointer",
-                backgroundColor: "#ffffff",
-              }}
             >
-              <div>{food.name}</div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {food.category} · {food.unitLabel} ·{" "}
-                {food.kcalPerUnit} kcal/{food.unitLabel}
+              {/* Row 1: Name */}
+              <div className="food-name">{food.name}</div>
+
+              {/* Row 2: Category + unit */}
+              <div className="food-sub">
+                <span>{food.category}</span>
+                <span className="dot">·</span>
+                <span>{food.unitLabel}</span>
+              </div>
+
+              {/* Row 3: Calories */}
+              <div className="food-meta">
+                {food.kcalPerUnit} kcal / {food.unitLabel}
               </div>
             </div>
           ))}
