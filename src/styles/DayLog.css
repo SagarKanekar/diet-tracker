@@ -1061,6 +1061,39 @@
   align-items: center;
 }
 
+/* ----- MOBILE - Expand search input width ----- */
+@media (max-width: 600px) {
+  .form-row-compact {
+    display: grid;
+    grid-template-columns: 1fr 56px 44px;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .form-row-compact > div:first-child {
+    width: auto !important;
+    flex: none !important;
+  }
+
+  .form-row-compact > div:nth-child(2) {
+    width: 56px !important;
+  }
+
+  .form-row-compact button {
+    width: 44px;
+    height: 44px;
+
+    padding: 0;
+    margin: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px; /* matches input radius vibe */
+  }
+}
+
 /* --- BUTTONS --- */
 .btn-row {
   display: flex;
