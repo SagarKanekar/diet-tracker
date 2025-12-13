@@ -129,7 +129,9 @@ function CalorieTooltip({ active, payload, label }) {
 
 export default function Trends() {
   const { state, dispatch, getDayDerived } = useAppState();
-  const { profile, dayLogs, selectedDate } = state;
+  const { dayLogs, selectedDate } = state;
+
+  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
 
   const [weightInput, setWeightInput] = useState("");
   const [weightTimeInput, setWeightTimeInput] = useState("");
@@ -171,7 +173,7 @@ export default function Trends() {
         extrasBar: extrasKcal * scaleFactor,
       };
     });
-  }, [dayLogs, state]); // End of allCalorieSeries useMemo
+  }, [dayKeysDep, getDayDerived, state]); // End of allCalorieSeries useMemo
 
   const allWeightSeries = useMemo(() => {
     const days = Object.values(dayLogs || {});
@@ -187,7 +189,7 @@ export default function Trends() {
       weight: Number(day.weightKg),
       time: day.weightTime || null,
     }));
-  }, [dayLogs]);
+  }, [dayKeysDep]);
 
   // ------- Range filtering (per chart) -------
 

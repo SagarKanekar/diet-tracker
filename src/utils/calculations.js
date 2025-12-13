@@ -244,9 +244,9 @@ export function sumEATFromActivities(activities, profile = {}) {
     : [];
 
   // Optional debug - remove after you verify
-  if (process.env.NODE_ENV !== "production") {
+  if (typeof process !== "undefined" && process.env && process.env.NODE_ENV !== "production") {
     if (!Array.isArray(activities)) {
-      console.warn("[sumEATFromActivities] normalized activities:", activities, "->", arr);
+      // console.warn("[sumEATFromActivities] normalized activities:", activities, "->", arr);
     }
   }
 
@@ -286,7 +286,7 @@ export function neatPercentFromSurvey({ subjective = 50, standingHours = 0, acti
 
 export function computeNEAT({ steps = null, weight_kg = null, survey = null, bmr = null, profile = null } = {}) {
   const c = getConstFromProfile(profile);
-  console.log("[computeNEAT] STEP_CONST:", c.STEP_KCAL_CONST, "profileProvided:", !!profile);
+  // console.log("[computeNEAT] STEP_CONST:", c.STEP_KCAL_CONST, "profileProvided:", !!profile);
   const STEP_CONST = c.STEP_KCAL_CONST ?? STEP_KCAL_CONST;
 
   const neatSteps = (steps != null && weight_kg != null)

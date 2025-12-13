@@ -11,17 +11,15 @@ export default function Stats() {
   const { state, getDayDerived } = useAppState();
   const { dayLogs, profile } = state;
 
+  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
+
   const derivedByDate = useMemo(() => {
     const map = {};
-    const keys = Object.keys(dayLogs || {});
-    for (const k of keys) {
-      const dateKey = dateToKey(k);
-      if (dateKey) map[dateKey] = getDayDerived(state, dateKey);
-    }
+    Object.keys(dayLogs || {}).forEach(k => {
+      map[k] = getDayDerived(state, k);
+    });
     return map;
-  }, [Object.keys(dayLogs || {}).join(','), profile?.bmr]);
-
-  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
+  }, [dayKeysDep, getDayDerived, state]);
 
   // Summary metrics for hero section (restored to original: no workoutDays)
   const summary = useMemo(() => {
@@ -43,10 +41,9 @@ export default function Stats() {
     for (const [dateKey, day] of entries) {
       if (!day) continue;
 
-      const date = dateToKey(dateKey);
-      if (!date) continue;
+      if (!dateKey) continue;
 
-      const derived = derivedByDate[date] || {};
+      const derived = derivedByDate[dateKey] || {};
       const tdee = derived.tdee || 0;
       const total = derived.totalIntake || 0;
 

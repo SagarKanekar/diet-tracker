@@ -22,7 +22,7 @@ function normalizeActivitiesInput(v) {
 }
 
 export default function ActivityTab() {
-  const { state, dispatch, getDayDerived } = useAppState();
+  const { state, dispatch } = useAppState();
   const date = state.selectedDate;
   const day = state.dayLogs?.[date] || {};
   const profile = state.profile || {};
@@ -37,13 +37,15 @@ export default function ActivityTab() {
   const [activeCommute, setActiveCommute] = useState(day.survey?.activeCommute ?? false);
 
   useEffect(() => {
-    // Keep local activities synced when changing selectedDate externally
-    setActivities(normalizeActivitiesInput(day.activities));
-    setSteps(day.steps ?? "");
+    const normalized = normalizeActivitiesInput(day.activities);
+    // Avoid synchronous setState if no change
+    const same = Array.isArray(activities) && activities.length === normalized.length && activities.every((a, i) => a?.id === normalized[i]?.id);
+    if (!same) setActivities(normalized);
+    if (day.steps !== steps) setSteps(day.steps ?? "");
     setSubjective(day.survey?.subjective ?? 50);
     setStandingHours(day.survey?.standingHours ?? 0);
     setActiveCommute(day.survey?.activeCommute ?? false);
-  }, [date, day.activities]);
+  }, [date, day.activities, day.steps, day.survey, activities, steps]);
 
   // Determine weight to use: day-level first, then profile fallbacks
   const effectiveWeightKg = useMemo(() => {
@@ -62,23 +64,18 @@ export default function ActivityTab() {
   }, [ activities, effectiveProfile, profile?.WALK_KCAL_PER_KG_PER_KM, profile?.RUN_KCAL_PER_KG_PER_KM, profile?.STEP_KCAL_CONST, profile?.DEFAULT_TEF_RATIO ]);
 
   // compute NEAT preview from local steps/survey for quick feedback
+  const previewStepsDep = previewSteps; // simple
+  const profileDeps = useMemo(() => ({
+    WALK_KCAL_PER_KG_PER_KM: profile?.WALK_KCAL_PER_KG_PER_KM,
+    RUN_KCAL_PER_KG_PER_KM: profile?.RUN_KCAL_PER_KG_PER_KM,
+    STEP_KCAL_CONST: profile?.STEP_KCAL_CONST,
+    DEFAULT_TEF_RATIO: profile?.DEFAULT_TEF_RATIO,
+  }), [profile?.WALK_KCAL_PER_KG_PER_KM, profile?.RUN_KCAL_PER_KG_PER_KM, profile?.STEP_KCAL_CONST, profile?.DEFAULT_TEF_RATIO]);
   const neatPreview = useMemo(() => {
     const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
     console.log("[ActivityTab] preview computeNEAT called with steps:", steps, "profile STEP:", profile?.STEP_KCAL_CONST);
     return computeNEAT({ steps: previewSteps, weight_kg: effectiveWeightKg, survey, bmr: bmrSnapshot, profile: effectiveProfile });
-  }, [
-    previewSteps,
-    subjective,
-    standingHours,
-    activeCommute,
-    effectiveWeightKg,
-    bmrSnapshot,
-    effectiveProfile,
-    profile?.WALK_KCAL_PER_KG_PER_KM,
-    profile?.RUN_KCAL_PER_KG_PER_KM,
-    profile?.STEP_KCAL_CONST,
-    profile?.DEFAULT_TEF_RATIO,
-  ]);
+  }, [previewStepsDep, subjective, standingHours, activeCommute, effectiveWeightKg, bmrSnapshot, profileDeps]);
 
   // compute Advanced AF preview combining current activities + NEAT
   const advAFPreview = useMemo(() => {
@@ -133,14 +130,14 @@ export default function ActivityTab() {
     const stepsVal = steps === "" ? null : Number(steps);
     const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
     dispatch({ type: "UPDATE_DAY_STEPS_SURVEY", payload: { date, steps: stepsVal, survey } });
-    console.log("Activities saved", activities);
+    // console.log("Activities saved", activities);
   }
 
   function saveStepsSurvey() {
     const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
     const stepsVal = steps === "" ? null : Number(steps);
     dispatch({ type: "UPDATE_DAY_STEPS_SURVEY", payload: { date, steps: stepsVal, survey } });
-    console.log("Saved steps/survey", stepsVal, survey);
+    // console.log("Saved steps/survey", stepsVal, survey);
   }
 
   function getTypeBadgeClass(type) {

@@ -27,17 +27,21 @@ export default function TDEEDecomposition() {
   const { state, getDayDerived } = useAppState();
   const { profile, dayLogs } = state;
 
+  // compute simple dependency keys for lint-able useMemo deps
+  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
+  const profileDefaultActivityFactor = profile?.defaultActivityFactor ?? 1.2;
+  const profileBmr = profile?.bmr ?? 0;
+
   const derivedByDate = useMemo(() => {
     const map = {};
-    const keys = Object.keys(dayLogs || {});
-    for (const k of keys) {
+    Object.keys(dayLogs || {}).forEach(k => {
       const dk = dateToKey(k);
       if (dk) map[dk] = getDayDerived(state, dk);
-    }
+    });
     return map;
-  }, [Object.keys(dayLogs || {}).join(",")]);
+  }, [dayKeysDep, getDayDerived, profileDefaultActivityFactor]);
 
-  const defaultAF = profile?.defaultActivityFactor ?? 1.2;
+  const defaultAF = profileDefaultActivityFactor;
 
   const [showDecomposition, setShowDecomposition] = useState(true);
   const [decompositionDays, setDecompositionDays] = useState(14);
@@ -78,14 +82,14 @@ export default function TDEEDecomposition() {
         breakdown.bmr ||
           breakdown.bmrSnapshot ||
           state.dayLogs?.[dk]?.bmrSnapshot ||
-          profile?.bmr ||
+          profileBmr ||
           0
       );
 
       const af = safeNum(
         breakdown.afComputed ??
           state.dayLogs?.[dk]?.activityFactor ??
-          profile?.defaultActivityFactor ??
+          profileDefaultActivityFactor ??
           1.2
       );
 
@@ -122,7 +126,7 @@ export default function TDEEDecomposition() {
         intake,
       };
     });
-  }, [decompositionDateKeys, derivedByDate, dayLogsDep, profile?.bmr]);
+  }, [decompositionDateKeys, derivedByDate, dayLogsDep, profileBmr]);
 
   // Display rows: reverse to show most recent at top (newest first)
   const displayDecompositionRows = useMemo(

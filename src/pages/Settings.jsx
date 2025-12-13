@@ -262,6 +262,7 @@ export default function Settings() {
         if (result.valid) setImportData(result);
         else setImportError(result.message);
       } catch (error) {
+        console.error(error);
         setImportError("Invalid JSON file.");
       }
       event.target.value = null;

@@ -125,6 +125,10 @@ export default function DailyStatsMatrix() {
   const { state, getDayDerived } = useAppState();
   const { profile, dayLogs } = state;
 
+  // compute simple dependency keys for lint-able useMemo deps
+  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(','), [dayLogs]);
+  const profileBmrDep = profile?.bmr ?? null;
+
   const derivedByDate = useMemo(() => {
     const map = {};
     const keys = Object.keys(dayLogs || {});
@@ -133,7 +137,7 @@ export default function DailyStatsMatrix() {
       if (dateKey) map[dateKey] = getDayDerived(state, dateKey);
     }
     return map;
-  }, [Object.keys(dayLogs || {}).join(','), profile?.bmr]);
+  }, [dayKeysDep, getDayDerived, profileBmrDep, state]); // include getDayDerived & state if they are not stable
 
   const [pickedDate, setPickedDate] = useState("");
   const [pageSize, setPageSize] = useState(7);
@@ -154,7 +158,7 @@ export default function DailyStatsMatrix() {
     []
   );
 
-  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
+  const profileDefaultActivityFactorDep = profile?.defaultActivityFactor ?? 1.2;
 
   // Build allDays (restored to original logic from Stats.jsx, newest first)
   const allDays = useMemo(() => {
@@ -175,7 +179,7 @@ export default function DailyStatsMatrix() {
         const estDeltaKg = -(deficit / 7700);
 
         const activityFactor =
-          day.activityFactor ?? profile.defaultActivityFactor ?? 1.2;
+          day.activityFactor ?? profileDefaultActivityFactorDep;
 
         // Pull NEAT / EAT / TEF from the breakdown (restored)
         const neatKcal = safeNum(tdeeBreakdown?.neat ?? 0);
@@ -225,7 +229,7 @@ export default function DailyStatsMatrix() {
 
     mapped.sort((a, b) => new Date(b.date) - new Date(a.date));
     return mapped;
-  }, [dayKeysDep, derivedByDate, profile?.defaultActivityFactor]);
+  }, [dayKeysDep, derivedByDate, profileDefaultActivityFactorDep]);
 
   const filteredDays = useMemo(() => {
     if (!pickedDate) return allDays;
