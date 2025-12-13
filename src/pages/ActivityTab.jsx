@@ -47,14 +47,34 @@ export default function ActivityTab() {
 
   // computed preview of totals (pass effective weight & bmr snapshot)
   const eatTotals = useMemo(() => {
-    return sumEATFromActivities(activities, effectiveProfile);
-  }, [activities, effectiveProfile]);
+    return sumEATFromActivities({ activities, profile: effectiveProfile });
+  }, [
+    activities,
+    effectiveProfile,
+    profile?.WALK_KCAL_PER_KG_PER_KM,
+    profile?.RUN_KCAL_PER_KG_PER_KM,
+    profile?.STEP_KCAL_CONST,
+    profile?.DEFAULT_TEF_RATIO,
+  ]);
 
   // compute NEAT preview from local steps/survey for quick feedback
   const neatPreview = useMemo(() => {
     const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
+    console.log("[ActivityTab] preview computeNEAT called with steps:", steps, "profile STEP:", profile?.STEP_KCAL_CONST);
     return computeNEAT({ steps: previewSteps, weight_kg: effectiveWeightKg, survey, bmr: bmrSnapshot, profile: effectiveProfile });
-  }, [previewSteps, subjective, standingHours, activeCommute, effectiveWeightKg, bmrSnapshot, effectiveProfile]);
+  }, [
+    previewSteps,
+    subjective,
+    standingHours,
+    activeCommute,
+    effectiveWeightKg,
+    bmrSnapshot,
+    effectiveProfile,
+    profile?.WALK_KCAL_PER_KG_PER_KM,
+    profile?.RUN_KCAL_PER_KG_PER_KM,
+    profile?.STEP_KCAL_CONST,
+    profile?.DEFAULT_TEF_RATIO,
+  ]);
 
   // compute Advanced AF preview combining current activities + NEAT
   const advAFPreview = useMemo(() => {
@@ -67,7 +87,20 @@ export default function ActivityTab() {
       survey,
       profile: effectiveProfile,
     });
-  }, [activities, previewSteps, subjective, standingHours, activeCommute, effectiveWeightKg, bmrSnapshot, effectiveProfile]);
+  }, [
+    activities,
+    previewSteps,
+    subjective,
+    standingHours,
+    activeCommute,
+    effectiveWeightKg,
+    bmrSnapshot,
+    effectiveProfile,
+    profile?.WALK_KCAL_PER_KG_PER_KM,
+    profile?.RUN_KCAL_PER_KG_PER_KM,
+    profile?.STEP_KCAL_CONST,
+    profile?.DEFAULT_TEF_RATIO,
+  ]);
 
   function addEmptyActivity(type = "walk") {
     const a = {
@@ -173,7 +206,7 @@ export default function ActivityTab() {
           </div>
         ) : (
           activities.map((a) => {
-            const preview = computeEATForActivity(a, effectiveProfile);
+            const preview = computeEATForActivity({ activity: a, profile: effectiveProfile });
             return (
               <div key={a.id} className="activity-entry">
                 <div className="activity-entry-header">

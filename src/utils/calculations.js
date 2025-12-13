@@ -225,17 +225,48 @@ export function computeEATForActivity(activity = {}, profile = {}) {
   return computeEAT_walk(activity, profile);
 }
 
-export function sumEATFromActivities(activities = [], profile = {}) {
-  const arr = activities || [];
-  let totalGross = 0, totalNet = 0, totalBmrShare = 0, details = [];
+export function sumEATFromActivities(activities, profile = {}) {
+  let effectiveActivities = activities;
+  let effectiveProfile = profile;
+  if (typeof activities === 'object' && activities !== null && 'activities' in activities) {
+    effectiveActivities = activities.activities;
+    effectiveProfile = activities.profile || profile;
+  }
+
+  // Defensive normalization
+  const arr = Array.isArray(effectiveActivities)
+    ? effectiveActivities
+    : effectiveActivities && typeof effectiveActivities === "object"
+    ? // if it's a single activity object or keyed object, convert to array
+      Array.isArray(Object.values(effectiveActivities)) && Object.values(effectiveActivities).length
+      ? Object.values(effectiveActivities)
+      : [effectiveActivities]
+    : [];
+
+  // Optional debug - remove after you verify
+  if (process.env.NODE_ENV !== "production") {
+    if (!Array.isArray(activities)) {
+      console.warn("[sumEATFromActivities] normalized activities:", activities, "->", arr);
+    }
+  }
+
+  let totalGross = 0, totalNet = 0, totalBmrShare = 0;
+  const details = [];
+
   arr.forEach((a) => {
-    const r = computeEATForActivity(a, profile);
+    const r = computeEATForActivity(a, effectiveProfile);
     totalGross += toNum(r.gross, 0);
     totalNet += toNum(r.net, 0);
     totalBmrShare += toNum(r.bmr_share, 0);
     details.push(Object.assign({ id: a.id ?? null, type: a.type ?? null }, r));
   });
-  return { totalGross: round(totalGross), totalNet: round(totalNet), totalBmrShare: round(totalBmrShare), details };
+
+  return {
+    totalGross: round(totalGross),
+    totalNet: round(totalNet),
+    totalBmrShare: round(totalBmrShare),
+    details,
+  };
 }
 
 // NEAT estimators
@@ -253,21 +284,22 @@ export function neatPercentFromSurvey({ subjective = 50, standingHours = 0, acti
   return pct;
 }
 
-export function computeNEAT({ steps = null, weight_kg = null, survey = null, bmr = null, profile = {} } = {}) {
-  const w = toNum(weight_kg, null);
-  const BMR = toNum(bmr, 0);
+export function computeNEAT({ steps = null, weight_kg = null, survey = null, bmr = null, profile = null } = {}) {
   const c = getConstFromProfile(profile);
-  const neatSteps = (steps != null && w != null) ? round((toNum(steps, 0) * (c.STEP_KCAL_CONST * w))) : null;
-  let neatSurvey = null;
-  if (survey) {
-    const pct = neatPercentFromSurvey(survey);
-    const baseBmr = BMR || 0;
-    neatSurvey = round(pct * baseBmr);
-  }
-  if (neatSteps != null && neatSurvey != null) return round(0.75 * neatSteps + 0.25 * neatSurvey);
+  console.log("[computeNEAT] STEP_CONST:", c.STEP_KCAL_CONST, "profileProvided:", !!profile);
+  const STEP_CONST = c.STEP_KCAL_CONST ?? STEP_KCAL_CONST;
+
+  const neatSteps = (steps != null && weight_kg != null)
+    ? Math.round(steps * (STEP_CONST * weight_kg))
+    : null;
+
+  const pct = neatPercentFromSurvey(survey);
+  const neatSurvey = (bmr != null) ? Math.round(pct * bmr) : null;
+
+  if (neatSteps != null && neatSurvey != null) return Math.round(0.75 * neatSteps + 0.25 * neatSurvey);
   if (neatSteps != null) return neatSteps;
   if (neatSurvey != null) return neatSurvey;
-  return round(0.10 * BMR);
+  return 0;
 }
 
 // Advanced AF & TDEE
