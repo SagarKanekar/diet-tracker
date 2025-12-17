@@ -294,7 +294,7 @@ export function computeNEAT({ steps = null, weight_kg = null, survey = null, bmr
     ? Math.round(steps * (STEP_CONST * weight_kg))
     : null;
 
-  const pct = neatPercentFromSurvey(survey);
+  const pct = neatPercentFromSurvey(survey ?? {});
   const neatSurvey = (bmr != null) ? Math.round(pct * bmr) : null;
 
   if (neatSteps != null && neatSurvey != null) return Math.round(0.75 * neatSteps + 0.25 * neatSurvey);
