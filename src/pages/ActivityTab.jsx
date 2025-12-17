@@ -61,7 +61,7 @@ export default function ActivityTab() {
     setSubjective(day.survey?.subjective ?? 50);
     setStandingHours(day.survey?.standingHours ?? 0);
     setActiveCommute(day.survey?.activeCommute ?? false);
-  }, [date, day.activities, day.steps, day.survey, activities, steps]);
+  }, [date, day.activities, day.steps, day.survey]);
 
   // Determine weight to use: day-level first, then profile fallbacks
   const effectiveWeightKg = useMemo(() => {
