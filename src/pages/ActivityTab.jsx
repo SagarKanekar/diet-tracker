@@ -2,7 +2,12 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useAppState } from "../context/AppStateContext";
-import { computeEATForActivity, sumEATFromActivities, computeNEAT, computeAdvancedActivityFactor } from "../utils/calculations";
+import {
+  computeEATForActivity,
+  sumEATFromActivities,
+  computeNEAT,
+  computeAdvancedActivityFactor,
+} from "../utils/calculations";
 import "../styles/ActivityTab.css";
 
 // Simple UUID helper for client-side ids
@@ -36,6 +41,17 @@ export default function ActivityTab() {
   const [standingHours, setStandingHours] = useState(day.survey?.standingHours ?? 0);
   const [activeCommute, setActiveCommute] = useState(day.survey?.activeCommute ?? false);
 
+  // Keep local activities in sync only when the store's snapshot changes
+  useEffect(() => {
+    setActivities(normalizeActivitiesInput(day.activities));
+  }, [date, day.activities]);
+
+  // Keep local NEAT fields in sync only when the store's snapshot changes
+  useEffect(() => {
+    setSteps(day.steps ?? "");
+  }, [date, day.steps]);
+
+  // Sync local state only when store snapshot changes (do NOT depend on local state)
   useEffect(() => {
     const normalized = normalizeActivitiesInput(day.activities);
     // Avoid synchronous setState if no change
@@ -54,9 +70,12 @@ export default function ActivityTab() {
 
   const bmrSnapshot = useMemo(() => Number(day.bmrSnapshot ?? profile.bmr ?? 0), [day.bmrSnapshot, profile.bmr]);
 
-  const effectiveProfile = useMemo(() => ({ ...profile, weight_kg: effectiveWeightKg, bmr: bmrSnapshot }), [profile, effectiveWeightKg, bmrSnapshot]);
+  const effectiveProfile = useMemo(
+    () => ({ ...profile, weight_kg: effectiveWeightKg, bmr: bmrSnapshot }),
+    [profile, effectiveWeightKg, bmrSnapshot]
+  );
 
-  const previewSteps = useMemo(() => steps === "" ? null : Number(steps), [steps]);
+  const previewSteps = useMemo(() => (steps === "" ? null : Number(steps)), [steps]);
 
   // computed preview of totals (pass effective weight & bmr snapshot)
   const eatTotals = useMemo(() => {
@@ -72,14 +91,27 @@ export default function ActivityTab() {
     DEFAULT_TEF_RATIO: profile?.DEFAULT_TEF_RATIO,
   }), [profile?.WALK_KCAL_PER_KG_PER_KM, profile?.RUN_KCAL_PER_KG_PER_KM, profile?.STEP_KCAL_CONST, profile?.DEFAULT_TEF_RATIO]);
   const neatPreview = useMemo(() => {
-    const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
-    console.log("[ActivityTab] preview computeNEAT called with steps:", steps, "profile STEP:", profile?.STEP_KCAL_CONST);
-    return computeNEAT({ steps: previewSteps, weight_kg: effectiveWeightKg, survey, bmr: bmrSnapshot, profile: effectiveProfile });
-  }, [previewStepsDep, subjective, standingHours, activeCommute, effectiveWeightKg, bmrSnapshot, profileDeps]);
+    const survey = {
+      subjective: Number(subjective),
+      standingHours: Number(standingHours),
+      activeCommute: !!activeCommute,
+    };
+    return computeNEAT({
+      steps: previewSteps,
+      weight_kg: effectiveWeightKg,
+      survey,
+      bmr: bmrSnapshot,
+      profile: effectiveProfile,
+    });
+  }, [previewSteps, subjective, standingHours, activeCommute, effectiveWeightKg, bmrSnapshot, profileDeps]);
 
   // compute Advanced AF preview combining current activities + NEAT
   const advAFPreview = useMemo(() => {
-    const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
+    const survey = {
+      subjective: Number(subjective),
+      standingHours: Number(standingHours),
+      activeCommute: !!activeCommute,
+    };
     return computeAdvancedActivityFactor({
       bmr: bmrSnapshot,
       weight_kg: effectiveWeightKg,
@@ -128,16 +160,22 @@ export default function ActivityTab() {
     dispatch({ type: "UPDATE_DAY_ACTIVITIES", payload: { date, activities } });
     // Make sure the UI recomputes DayLog by also updating steps/survey if present
     const stepsVal = steps === "" ? null : Number(steps);
-    const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
+    const survey = {
+      subjective: Number(subjective),
+      standingHours: Number(standingHours),
+      activeCommute: !!activeCommute,
+    };
     dispatch({ type: "UPDATE_DAY_STEPS_SURVEY", payload: { date, steps: stepsVal, survey } });
-    // console.log("Activities saved", activities);
   }
 
   function saveStepsSurvey() {
-    const survey = { subjective: Number(subjective), standingHours: Number(standingHours), activeCommute: !!activeCommute };
+    const survey = {
+      subjective: Number(subjective),
+      standingHours: Number(standingHours),
+      activeCommute: !!activeCommute,
+    };
     const stepsVal = steps === "" ? null : Number(steps);
     dispatch({ type: "UPDATE_DAY_STEPS_SURVEY", payload: { date, steps: stepsVal, survey } });
-    // console.log("Saved steps/survey", stepsVal, survey);
   }
 
   function getTypeBadgeClass(type) {
@@ -153,8 +191,17 @@ export default function ActivityTab() {
         <div className="activity-header-left">
           <h1 className="activity-title">
             <span className="activity-title-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </span>
             Activity Log
@@ -163,20 +210,55 @@ export default function ActivityTab() {
         </div>
         <div className="activity-actions">
           <button className="activity-btn activity-btn-secondary" onClick={() => addEmptyActivity("walk")}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="5" r="1" />
+              <path d="m9 20 3-6 3 6" />
+              <path d="m6 8 6 2 6-2" />
+              <path d="M12 10v4" />
             </svg>
             Add Walk
           </button>
           <button className="activity-btn activity-btn-secondary" onClick={() => addEmptyActivity("jog")}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="17" cy="5" r="1"/><path d="M8 20h4l2-4"/><path d="M14 16 8 8l-3 5"/><path d="m21 12-4-3-5 7"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="17" cy="5" r="1" />
+              <path d="M8 20h4l2-4" />
+              <path d="M14 16 8 8l-3 5" />
+              <path d="m21 12-4-3-5 7" />
             </svg>
             Add Jog
           </button>
           <button className="activity-btn activity-btn-success" onClick={saveActivities}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17,21 17,13 7,13 7,21" />
+              <polyline points="7,3 7,8 15,8" />
             </svg>
             Save Activities
           </button>
@@ -185,10 +267,21 @@ export default function ActivityTab() {
 
       {/* Info Banner */}
       <div className="activity-info-banner">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
-        Activities without distance will be treated as NEAT-only and won't count as EAT. 
+        Activities without distance will be treated as NEAT-only and won't count as EAT.
       </div>
 
       {/* Activities List */}
@@ -196,8 +289,17 @@ export default function ActivityTab() {
         {activities.length === 0 ? (
           <div className="activity-empty">
             <div className="activity-empty-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </div>
             <p className="activity-empty-text">
@@ -214,21 +316,55 @@ export default function ActivityTab() {
                   <div className="activity-entry-type">
                     <span className={getTypeBadgeClass(a.type)}>
                       {a.type === "walk" && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="12" cy="5" r="1" />
+                          <path d="m9 20 3-6 3 6" />
+                          <path d="m6 8 6 2 6-2" />
+                          <path d="M12 10v4" />
                         </svg>
                       )}
                       {a.type === "jog" && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="17" cy="5" r="1"/><path d="M8 20h4l2-4"/><path d="M14 16 8 8l-3 5"/><path d="m21 12-4-3-5 7"/>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="17" cy="5" r="1" />
+                          <path d="M8 20h4l2-4" />
+                          <path d="M14 16 8 8l-3 5" />
+                          <path d="m21 12-4-3-5 7" />
                         </svg>
                       )}
-                      {a.type?.toUpperCase() || 'ACTIVITY'}
+                      {a.type?.toUpperCase() || "ACTIVITY"}
                     </span>
                   </div>
                   <button className="activity-btn activity-btn-danger" onClick={() => removeActivity(a.id)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="3,6 5,6 21,6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                     </svg>
                     Remove
                   </button>
@@ -237,23 +373,25 @@ export default function ActivityTab() {
                 <div className="activity-form-grid">
                   <div className="activity-field">
                     <label className="activity-field-label">Duration (min)</label>
-                    <input 
-                      type="number" 
-                      className="activity-input" 
-                      value={a.duration_min} 
-                      onChange={(e) => updateActivity(a.id, { duration_min: Number(e.target.value) })} 
+                    <input
+                      type="number"
+                      className="activity-input"
+                      value={a.duration_min}
+                      onChange={(e) => updateActivity(a.id, { duration_min: Number(e.target.value) })}
                       placeholder="30"
                     />
                   </div>
 
                   <div className="activity-field">
                     <label className="activity-field-label">Distance (km)</label>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      className="activity-input" 
-                      value={a.distance_km ?? ''} 
-                      onChange={(e) => updateActivity(a.id, { distance_km: e.target.value === '' ? null : Number(e.target.value) })} 
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="activity-input"
+                      value={a.distance_km ?? ""}
+                      onChange={(e) =>
+                        updateActivity(a.id, { distance_km: e.target.value === "" ? null : Number(e.target.value) })
+                      }
                       placeholder="Optional"
                     />
                   </div>
@@ -261,13 +399,13 @@ export default function ActivityTab() {
                   <div className="activity-field">
                     <label className="activity-field-label">Intensity (0-100)</label>
                     <div className="activity-range-wrapper">
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="100" 
-                        className="activity-range" 
-                        value={a.intensity} 
-                        onChange={(e) => updateActivity(a.id, { intensity: Number(e.target.value) })} 
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        className="activity-range"
+                        value={a.intensity}
+                        onChange={(e) => updateActivity(a.id, { intensity: Number(e.target.value) })}
                       />
                       <span className="activity-range-value">{a.intensity}%</span>
                     </div>
@@ -275,10 +413,10 @@ export default function ActivityTab() {
 
                   <div className="activity-field">
                     <label className="activity-field-label">Notes</label>
-                    <input 
-                      className="activity-input" 
-                      value={a.notes} 
-                      onChange={(e) => updateActivity(a.id, { notes: e.target.value })} 
+                    <input
+                      className="activity-input"
+                      value={a.notes}
+                      onChange={(e) => updateActivity(a.id, { notes: e.target.value })}
                       placeholder="Optional notes..."
                     />
                   </div>
@@ -286,7 +424,7 @@ export default function ActivityTab() {
 
                 <div className="activity-preview">
                   <div className="activity-preview-stat">
-                    Gross:  <strong>{preview.gross} kcal</strong>
+                    Gross: <strong>{preview.gross} kcal</strong>
                   </div>
                   <div className="activity-preview-stat">
                     BMR Share: <strong>{preview.bmr_share} kcal</strong>
@@ -308,7 +446,7 @@ export default function ActivityTab() {
         <div className="neat-section-header">
           <span className="neat-section-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M2 12h20"/>
+              <path d="M12 2v20M2 12h20" />
             </svg>
           </span>
           <h3 className="neat-section-title">NEAT (Steps & Quick Survey)</h3>
@@ -317,11 +455,11 @@ export default function ActivityTab() {
         <div className="neat-form-grid">
           <div className="activity-field">
             <label className="activity-field-label">Steps (optional)</label>
-            <input 
-              type="number" 
-              className="activity-input" 
-              value={steps ?? ''} 
-              onChange={(e) => setSteps(e.target.value)} 
+            <input
+              type="number"
+              className="activity-input"
+              value={steps ?? ""}
+              onChange={(e) => setSteps(e.target.value)}
               placeholder="e.g. 8000"
             />
           </div>
@@ -329,13 +467,13 @@ export default function ActivityTab() {
           <div className="activity-field">
             <label className="activity-field-label">Subjective Activity (0-100)</label>
             <div className="activity-range-wrapper">
-              <input 
-                type="range" 
-                min="0" 
-                max="100" 
-                className="activity-range" 
-                value={subjective} 
-                onChange={(e) => setSubjective(Number(e.target.value))} 
+              <input
+                type="range"
+                min="0"
+                max="100"
+                className="activity-range"
+                value={subjective}
+                onChange={(e) => setSubjective(Number(e.target.value))}
               />
               <span className="activity-range-value">{subjective}%</span>
             </div>
@@ -358,12 +496,12 @@ export default function ActivityTab() {
           <div className="activity-field">
             <label className="activity-field-label">Active Commute</label>
             <div className="neat-checkbox-field">
-              <input 
-                type="checkbox" 
-                className="neat-checkbox" 
+              <input
+                type="checkbox"
+                className="neat-checkbox"
                 id="activeCommute"
-                checked={activeCommute} 
-                onChange={(e) => setActiveCommute(e.target.checked)} 
+                checked={activeCommute}
+                onChange={(e) => setActiveCommute(e.target.checked)}
               />
               <label className="neat-checkbox-label" htmlFor="activeCommute">Yes, I commute actively</label>
             </div>
@@ -373,7 +511,9 @@ export default function ActivityTab() {
         <div className="neat-save-row">
           <button className="activity-btn activity-btn-primary" onClick={saveStepsSurvey}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/>
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17,21 17,13 7,13 7,21" />
+              <polyline points="7,3 7,8 15,8" />
             </svg>
             Save Steps & Survey
           </button>
@@ -387,7 +527,9 @@ export default function ActivityTab() {
         <div className="totals-header">
           <span className="totals-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
             </svg>
           </span>
           <h3 className="totals-title">Totals Preview</h3>
@@ -411,7 +553,7 @@ export default function ActivityTab() {
           <div className="totals-stat">
             <span className="totals-stat-label">Advanced AF</span>
             <span className="totals-stat-value">
-              {advAFPreview.afAdvanced?.toFixed(3) ?? '-'}
+              {advAFPreview.afAdvanced?.toFixed(3) ?? "-"}
             </span>
           </div>
         </div>
@@ -421,16 +563,22 @@ export default function ActivityTab() {
       <div className="activity-footer">
         <button className="activity-btn activity-btn-success" onClick={saveActivities}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/>
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17,21 17,13 7,13 7,21" />
+            <polyline points="7,3 7,8 15,8" />
           </svg>
           Save Activities & Compute AF
         </button>
-        <button 
-          className="activity-btn activity-btn-ghost" 
-          onClick={() => { setActivities([]); dispatch({ type: 'UPDATE_DAY_ACTIVITIES', payload: { date, activities: [] } }); }}
+        <button
+          className="activity-btn activity-btn-ghost"
+          onClick={() => {
+            setActivities([]);
+            dispatch({ type: "UPDATE_DAY_ACTIVITIES", payload: { date, activities: [] } });
+          }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            <polyline points="3,6 5,6 21,6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
           Clear Activities
         </button>
