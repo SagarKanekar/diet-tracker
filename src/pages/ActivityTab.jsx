@@ -51,17 +51,17 @@ export default function ActivityTab() {
     setSteps(day.steps ?? "");
   }, [date, day.steps]);
 
+  // Sync local state only when store snapshot changes (do NOT depend on local state)
   useEffect(() => {
+    const normalized = normalizeActivitiesInput(day.activities);
+    // Avoid synchronous setState if no change
+    const same = Array.isArray(activities) && activities.length === normalized.length && activities.every((a, i) => a?.id === normalized[i]?.id);
+    if (!same) setActivities(normalized);
+    if (day.steps !== steps) setSteps(day.steps ?? "");
     setSubjective(day.survey?.subjective ?? 50);
-  }, [date, day.survey?.subjective]);
-
-  useEffect(() => {
     setStandingHours(day.survey?.standingHours ?? 0);
-  }, [date, day.survey?.standingHours]);
-
-  useEffect(() => {
-    setActiveCommute(!!(day.survey?.activeCommute ?? false));
-  }, [date, day.survey?.activeCommute]);
+    setActiveCommute(day.survey?.activeCommute ?? false);
+  }, [date, day.activities, day.steps, day.survey, activities, steps]);
 
   // Determine weight to use: day-level first, then profile fallbacks
   const effectiveWeightKg = useMemo(() => {
@@ -80,26 +80,16 @@ export default function ActivityTab() {
   // computed preview of totals (pass effective weight & bmr snapshot)
   const eatTotals = useMemo(() => {
     return sumEATFromActivities(activities, effectiveProfile);
-  }, [
-    activities,
-    effectiveProfile,
-    profile?.WALK_KCAL_PER_KG_PER_KM,
-    profile?.RUN_KCAL_PER_KG_PER_KM,
-    profile?.STEP_KCAL_CONST,
-    profile?.DEFAULT_TEF_RATIO,
-  ]);
+  }, [ activities, effectiveProfile, profile?.WALK_KCAL_PER_KG_PER_KM, profile?.RUN_KCAL_PER_KG_PER_KM, profile?.STEP_KCAL_CONST, profile?.DEFAULT_TEF_RATIO ]);
 
   // compute NEAT preview from local steps/survey for quick feedback
-  const profileDeps = useMemo(
-    () => ({
-      WALK_KCAL_PER_KG_PER_KM: profile?.WALK_KCAL_PER_KG_PER_KM,
-      RUN_KCAL_PER_KG_PER_KM: profile?.RUN_KCAL_PER_KG_PER_KM,
-      STEP_KCAL_CONST: profile?.STEP_KCAL_CONST,
-      DEFAULT_TEF_RATIO: profile?.DEFAULT_TEF_RATIO,
-    }),
-    [profile?.WALK_KCAL_PER_KG_PER_KM, profile?.RUN_KCAL_PER_KG_PER_KM, profile?.STEP_KCAL_CONST, profile?.DEFAULT_TEF_RATIO]
-  );
-
+  const previewStepsDep = previewSteps; // simple
+  const profileDeps = useMemo(() => ({
+    WALK_KCAL_PER_KG_PER_KM: profile?.WALK_KCAL_PER_KG_PER_KM,
+    RUN_KCAL_PER_KG_PER_KM: profile?.RUN_KCAL_PER_KG_PER_KM,
+    STEP_KCAL_CONST: profile?.STEP_KCAL_CONST,
+    DEFAULT_TEF_RATIO: profile?.DEFAULT_TEF_RATIO,
+  }), [profile?.WALK_KCAL_PER_KG_PER_KM, profile?.RUN_KCAL_PER_KG_PER_KM, profile?.STEP_KCAL_CONST, profile?.DEFAULT_TEF_RATIO]);
   const neatPreview = useMemo(() => {
     const survey = {
       subjective: Number(subjective),
@@ -491,10 +481,10 @@ export default function ActivityTab() {
 
           <div className="activity-field">
             <label className="activity-field-label">Hours Standing (approx)</label>
-            <select
-              className="activity-select"
-              value={standingHours}
-              onChange={(e) => setStandingHours(Number(e.target.value))}
+            <select 
+              className="activity-select" 
+              value={standingHours} 
+              onChange={(e) => setStandingHours(e.target.value)}
             >
               <option value={0}>0</option>
               <option value={1}>1</option>
