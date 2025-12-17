@@ -21,7 +21,7 @@ import "../styles/Dashboard.css";
 export default function Dashboard() {
   // ✅ 1. Get the centralized selector
   const { state, getDayDerived } = useAppState();
-  const { dayLogs, profile } = state;
+  const { dayLogs } = state;
 
   // --- 2. Today's Data (Using Context Logic) ---
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -31,8 +31,6 @@ export default function Dashboard() {
     tdee: todayLimit,      // This is Base TDEE + Effective Workout
     totalIntake: todayIntake, 
     netKcal: todayNetState, // (Intake - Limit). Positive = Surplus, Negative = Deficit
-    workoutCalories: todayWorkoutRaw, // Raw log
-    intensityFactor 
   } = getDayDerived(state, todayIso);
 
   // Dashboard "Deficit" view: We want Positive = Good (Calories Left)

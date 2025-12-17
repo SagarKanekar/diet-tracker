@@ -91,10 +91,12 @@ export default function Foods() {
     reader.readAsText(file);
   };
   // ---------- Categories ----------
-  const userCategories =
+  const userCategories = useMemo(() =>
     (state.foodCategories && state.foodCategories.length
       ? state.foodCategories
-      : DEFAULT_FOOD_CATEGORIES) || [];
+      : DEFAULT_FOOD_CATEGORIES) || [],
+    [state.foodCategories]
+  );
   const allFoods = state.foodItems || [];
   const unassignedCount = allFoods.filter(
     (f) => !f.category || f.category === ""

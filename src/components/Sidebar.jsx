@@ -31,7 +31,7 @@ export default function Sidebar({ open, setOpen, mobileRailVisible }) {
       document.addEventListener("keydown", onKey);
     }
     return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, closeSidebar]);
 
   const navItems = [
     { to: "/", label: "Dashboard", icon: Home, index: 1 },
