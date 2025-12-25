@@ -41,7 +41,50 @@ function IntakeTarget({
   RangeToggle,
   CalorieTooltip,
   formatDateLabel,
+  onPrevWindow,
+  onNextWindow,
+  canGoPrev,
+  canGoNext,
 }) {
+  const [touchStartX, setTouchStartX] = React.useState(null);
+  const [touchStartY, setTouchStartY] = React.useState(null);
+
+  const SWIPE_THRESHOLD = 40;
+
+  const handleTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    setTouchStartX(touch.clientX);
+    setTouchStartY(touch.clientY);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX == null || touchStartY == null) return;
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+
+    // ignore small or mostly vertical gestures
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) {
+      setTouchStartX(null);
+      setTouchStartY(null);
+      return;
+    }
+
+    if (dx < 0) {
+      // swipe left -> older window
+      onPrevWindow && onPrevWindow();
+    } else {
+      // swipe right -> newer window
+      onNextWindow && onNextWindow();
+    }
+
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
   return (
     <section className="trends-card intake-target-card">
       <div className="trends-card-header-row">
@@ -59,7 +102,11 @@ function IntakeTarget({
         </div>
       ) : (
         <>
-          <div className="chart-container intake-target-chart-container">
+          <div
+            className="chart-container intake-target-chart-container"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={calorieSeries}
@@ -144,6 +191,25 @@ function IntakeTarget({
                 />
               </ComposedChart>
             </ResponsiveContainer>
+          </div>
+
+          <div className="chart-nav intake-target-nav">
+            <button
+              type="button"
+              className="chart-nav-button"
+              onClick={onPrevWindow}
+              disabled={!canGoPrev}
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              className="chart-nav-button"
+              onClick={onNextWindow}
+              disabled={!canGoNext}
+            >
+              →
+            </button>
           </div>
 
           <div className="chart-volume-legend intake-target-volume-legend">

@@ -176,3 +176,48 @@
     transition: none !important;
   }
 }
+
+/* --- Window navigation arrows --- */
+
+.intake-target-nav {
+  margin-top: 0.35rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.intake-target-nav .chart-nav-button {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: #ffffff;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.08s ease,
+    box-shadow 0.16s ease;
+}
+
+.intake-target-nav .chart-nav-button:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: var(--text);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+}
+
+.intake-target-nav .chart-nav-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Optionally hide arrows on very small screens if you want swipe-only */
+@media (max-width: 640px) {
+  .intake-target-nav {
+    justify-content: center;
+  }
+}

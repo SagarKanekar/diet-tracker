@@ -34,7 +34,46 @@ function TotalDeficit({
   deficitSeries,
   RangeToggle,
   formatDateLabel,
+  onPrevWindow,
+  onNextWindow,
+  canGoPrev,
+  canGoNext,
 }) {
+  const [touchStartX, setTouchStartX] = React.useState(null);
+  const [touchStartY, setTouchStartY] = React.useState(null);
+  const SWIPE_THRESHOLD = 40;
+
+  const handleTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    setTouchStartX(touch.clientX);
+    setTouchStartY(touch.clientY);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX == null || touchStartY == null) return;
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) {
+      setTouchStartX(null);
+      setTouchStartY(null);
+      return;
+    }
+
+    if (dx < 0) {
+      onPrevWindow && onPrevWindow();
+    } else {
+      onNextWindow && onNextWindow();
+    }
+
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
   return (
     <section className="trends-card total-deficit-card">
       <div className="trends-card-header-row">
@@ -51,47 +90,72 @@ function TotalDeficit({
           your cumulative deficit.
         </div>
       ) : (
-        <div className="chart-container total-deficit-chart-container">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={deficitSeries} margin={{ left: 0, right: 16 }}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(203,213,225,0.6)"
-              />
-              <XAxis
-                dataKey="date"
-                tickFormatter={formatDateLabel}
-                minTickGap={16}
-                tick={{ fontSize: 11, fill: "#64748b" }}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#64748b" }}
-                tickFormatter={(v) => `${v} kcal`}
-                width={70}
-              />
-              <Tooltip content={<TotalDeficitTooltip />} />
-              {/* Daily deficit (thin, light) */}
-              <Line
-                type="monotone"
-                dataKey="dailyDeficit"
-                stroke="#93c5fd"      /* light blue */
-                strokeWidth={1.5}
-                dot={false}
-                name="Daily deficit"
-              />
-              {/* Total deficit (primary line) */}
-              <Line
-                type="monotone"
-                dataKey="totalDeficit"
-                stroke="#0f766e"      /* teal, fits the app theme */
-                strokeWidth={2.2}
-                dot={{ r: 2 }}
-                activeDot={{ r: 4 }}
-                name="Total deficit"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <>
+          <div
+            className="chart-container total-deficit-chart-container"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={deficitSeries} margin={{ left: 0, right: 16 }}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(203,213,225,0.6)"
+                />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatDateLabel}
+                  minTickGap={16}
+                  tick={{ fontSize: 11, fill: "#64748b" }}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  tickFormatter={(v) => `${v} kcal`}
+                  width={70}
+                />
+                <Tooltip content={<TotalDeficitTooltip />} />
+                {/* Daily deficit (thin, light) */}
+                <Line
+                  type="monotone"
+                  dataKey="dailyDeficit"
+                  stroke="#93c5fd"      /* light blue */
+                  strokeWidth={1.5}
+                  dot={false}
+                  name="Daily deficit"
+                />
+                {/* Total deficit (primary line) */}
+                <Line
+                  type="monotone"
+                  dataKey="totalDeficit"
+                  stroke="#0f766e"      /* teal, fits the app theme */
+                  strokeWidth={2.2}
+                  dot={{ r: 2 }}
+                  activeDot={{ r: 4 }}
+                  name="Total deficit"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="chart-nav total-deficit-nav">
+            <button
+              type="button"
+              className="chart-nav-button"
+              onClick={onPrevWindow}
+              disabled={!canGoPrev}
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              className="chart-nav-button"
+              onClick={onNextWindow}
+              disabled={!canGoNext}
+            >
+              →
+            </button>
+          </div>
+        </>
       )}
     </section>
   );

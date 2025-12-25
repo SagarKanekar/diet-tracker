@@ -149,6 +149,9 @@ export default function Trends() {
   const [calorieRange, setCalorieRange] = useState("30");
   const [weightRange, setWeightRange] = useState("30");
   const [deficitRange, setDeficitRange] = useState("30");
+  const [calorieOffset, setCalorieOffset] = useState(0);
+  const [weightOffset, setWeightOffset] = useState(0);
+  const [deficitOffset, setDeficitOffset] = useState(0);
 
   // ------- Build full series from day logs -------
 
@@ -229,17 +232,55 @@ export default function Trends() {
 
   // ------- Range filtering (per chart) -------
 
-  const sliceByRange = (series, range) => {
-    if (!series || series.length === 0) return [];
-    if (range === "all") return series;
-    const n = range === "7" ? 7 : 30;
-    if (series.length <= n) return series;
-    return series.slice(series.length - n);
+  const computeWindowedSeries = (fullSeries, range, offset) => {
+    if (!fullSeries || fullSeries.length === 0) return [];
+
+    if (range === "all") {
+      return fullSeries;
+    }
+
+    const size = range === "7" ? 7 : 30;
+    const total = fullSeries.length;
+
+    // offset 0 = latest window, offset 1 = previous, etc.
+    const endIndex = total - offset * size;
+    const startIndex = Math.max(0, endIndex - size);
+
+    if (endIndex <= 0 || startIndex >= total) {
+      return [];
+    }
+
+    return fullSeries.slice(startIndex, endIndex);
   };
 
-  const calorieSeries = sliceByRange(allCalorieSeries, calorieRange);
-  const weightSeries = sliceByRange(allWeightSeries, weightRange);
-  const deficitSeries = sliceByRange(allDeficitSeries, deficitRange);
+  const calorieSeries = computeWindowedSeries(
+    allCalorieSeries,
+    calorieRange,
+    calorieOffset
+  );
+
+  const weightSeries = computeWindowedSeries(
+    allWeightSeries,
+    weightRange,
+    weightOffset
+  );
+
+  const deficitSeries = computeWindowedSeries(
+    allDeficitSeries,
+    deficitRange,
+    deficitOffset
+  );
+
+  const getMaxOffset = (fullSeries, range) => {
+    if (!fullSeries || !fullSeries.length) return 0;
+    if (range === "all") return 0;
+    const size = range === "7" ? 7 : 30;
+    return Math.max(0, Math.ceil(fullSeries.length / size) - 1);
+  };
+
+  const calorieMaxOffset = getMaxOffset(allCalorieSeries, calorieRange);
+  const weightMaxOffset = getMaxOffset(allWeightSeries, weightRange);
+  const deficitMaxOffset = getMaxOffset(allDeficitSeries, deficitRange);
 
   const hasCalorieData = calorieSeries.length > 1;
   const hasWeightData = weightSeries.length > 1;
@@ -257,6 +298,52 @@ export default function Trends() {
   }, [hasWeightData, weightSeries]);
 
   // ------- Handlers -------
+
+  const handleCalorieRangeChange = (nextRange) => {
+    setCalorieRange(nextRange);
+    setCalorieOffset(0);
+  };
+
+  const handleWeightRangeChange = (nextRange) => {
+    setWeightRange(nextRange);
+    setWeightOffset(0);
+  };
+
+  const handleDeficitRangeChange = (nextRange) => {
+    setDeficitRange(nextRange);
+    setDeficitOffset(0);
+  };
+
+  // Older windows = higher offset; newer windows = lower offset until 0
+  const showPreviousCalorieWindow = () => {
+    if (calorieRange === "all") return;
+    setCalorieOffset((prev) => Math.min(prev + 1, calorieMaxOffset));
+  };
+
+  const showNextCalorieWindow = () => {
+    if (calorieRange === "all") return;
+    setCalorieOffset((prev) => Math.max(prev - 1, 0));
+  };
+
+  const showPreviousWeightWindow = () => {
+    if (weightRange === "all") return;
+    setWeightOffset((prev) => Math.min(prev + 1, weightMaxOffset));
+  };
+
+  const showNextWeightWindow = () => {
+    if (weightRange === "all") return;
+    setWeightOffset((prev) => Math.max(prev - 1, 0));
+  };
+
+  const showPreviousDeficitWindow = () => {
+    if (deficitRange === "all") return;
+    setDeficitOffset((prev) => Math.min(prev + 1, deficitMaxOffset));
+  };
+
+  const showNextDeficitWindow = () => {
+    if (deficitRange === "all") return;
+    setDeficitOffset((prev) => Math.max(prev - 1, 0));
+  };
 
   const handleDateChange = (e) => {
     dispatch({ type: "SET_SELECTED_DATE", payload: e.target.value });
@@ -319,34 +406,46 @@ export default function Trends() {
       {/* Calorie Intake vs. Target (TDEE) card */}
       <IntakeTarget
         calorieRange={calorieRange}
-        onCalorieRangeChange={setCalorieRange}
+        onCalorieRangeChange={handleCalorieRangeChange}
         hasCalorieData={hasCalorieData}
         calorieSeries={calorieSeries}
         RangeToggle={RangeToggle}
         CalorieTooltip={CalorieTooltip}
         formatDateLabel={formatDateLabel}
+        onPrevWindow={showPreviousCalorieWindow}
+        onNextWindow={showNextCalorieWindow}
+        canGoPrev={calorieOffset < calorieMaxOffset}
+        canGoNext={calorieOffset > 0}
       />
 
       {/* Total Calorie Deficit card */}
       <TotalDeficit
         deficitRange={deficitRange}
-        onDeficitRangeChange={setDeficitRange}
+        onDeficitRangeChange={handleDeficitRangeChange}
         hasDeficitData={hasDeficitData}
         deficitSeries={deficitSeries}
         RangeToggle={RangeToggle}
         formatDateLabel={formatDateLabel}
+        onPrevWindow={showPreviousDeficitWindow}
+        onNextWindow={showNextDeficitWindow}
+        canGoPrev={deficitOffset < deficitMaxOffset}
+        canGoNext={deficitOffset > 0}
       />
 
       {/* Weight History card */}
       <WeightHistory
         weightRange={weightRange}
-        onWeightRangeChange={setWeightRange}
+        onWeightRangeChange={handleWeightRangeChange}
         hasWeightData={hasWeightData}
         weightSeries={weightSeries}
         weightDomain={weightDomain}
         RangeToggle={RangeToggle}
         WeightTooltip={WeightTooltip}
         formatDateLabel={formatDateLabel}
+        onPrevWindow={showPreviousWeightWindow}
+        onNextWindow={showNextWeightWindow}
+        canGoPrev={weightOffset < weightMaxOffset}
+        canGoNext={weightOffset > 0}
       />
     </div>
   );
