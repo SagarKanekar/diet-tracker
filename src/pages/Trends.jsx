@@ -24,6 +24,7 @@ import "../styles/Trends.css";
 import WeightLog from "../components/trends/WeightLog";
 import IntakeTarget from "../components/trends/IntakeTarget";
 import WeightHistory from "../components/trends/WeightHistory";
+import TotalDeficit from "../components/trends/TotalDeficit";
 
 const formatDateLabel = (iso) => {
   if (!iso) return "";
@@ -147,6 +148,7 @@ export default function Trends() {
   const [weightTimeInput, setWeightTimeInput] = useState("");
   const [calorieRange, setCalorieRange] = useState("30");
   const [weightRange, setWeightRange] = useState("30");
+  const [deficitRange, setDeficitRange] = useState("30");
 
   // ------- Build full series from day logs -------
 
@@ -201,6 +203,30 @@ export default function Trends() {
     }));
   }, [dayKeysDep]);
 
+  // ------- Total deficit series -------
+
+  const allDeficitSeries = useMemo(() => {
+    const days = Object.values(dayLogs || {});
+    const sorted = days
+      .filter((d) => d && d.date)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    let runningTotal = 0;
+
+    return sorted.map((day) => {
+      const { tdee, totalIntake } = getDayDerived(state, day.date);
+
+      const dailyDeficit = Math.round(tdee - totalIntake); // positive = deficit
+      runningTotal += dailyDeficit;
+
+      return {
+        date: day.date,
+        dailyDeficit,
+        totalDeficit: runningTotal,
+      };
+    });
+  }, [dayKeysDep, getDayDerived, state]);
+
   // ------- Range filtering (per chart) -------
 
   const sliceByRange = (series, range) => {
@@ -213,9 +239,11 @@ export default function Trends() {
 
   const calorieSeries = sliceByRange(allCalorieSeries, calorieRange);
   const weightSeries = sliceByRange(allWeightSeries, weightRange);
+  const deficitSeries = sliceByRange(allDeficitSeries, deficitRange);
 
   const hasCalorieData = calorieSeries.length > 1;
   const hasWeightData = weightSeries.length > 1;
+  const hasDeficitData = deficitSeries.length > 1;
 
   // Dynamic zoom for weight chart so it isn't flat
   const weightDomain = useMemo(() => {
@@ -296,6 +324,16 @@ export default function Trends() {
         calorieSeries={calorieSeries}
         RangeToggle={RangeToggle}
         CalorieTooltip={CalorieTooltip}
+        formatDateLabel={formatDateLabel}
+      />
+
+      {/* Total Calorie Deficit card */}
+      <TotalDeficit
+        deficitRange={deficitRange}
+        onDeficitRangeChange={setDeficitRange}
+        hasDeficitData={hasDeficitData}
+        deficitSeries={deficitSeries}
+        RangeToggle={RangeToggle}
         formatDateLabel={formatDateLabel}
       />
 
