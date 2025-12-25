@@ -1,0 +1,150 @@
+/* src/styles/trends/WeightHistory.css
+   Fully standalone styles for the WeightHistory (Weight History chart) card.
+*/
+
+/* --- Card --- */
+
+.weight-history-card {
+  background: var(--surface);
+  border-radius: var(--card-radius);
+  padding: 1.25rem 1.35rem;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-card);
+}
+
+/* Header row with title + range toggle */
+.weight-history-card .trends-card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.weight-history-card .section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --- Range toggle --- */
+
+.weight-history-card .chart-range-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.8);
+}
+
+.weight-history-card .chart-range-label {
+  font-size: var(--text-xs);
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.weight-history-card .chart-range-pill {
+  border: none;
+  background: transparent;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.08s ease;
+}
+
+.weight-history-card .chart-range-pill:hover {
+  background: #e2e8f0;
+}
+
+.weight-history-card .chart-range-pill-active {
+  background: #2b7fb6;
+  color: #f9fafb;
+}
+
+/* --- Chart container --- */
+
+.weight-history-chart-container {
+  width: 100%;
+  height: 260px;
+  margin-top: 0.4rem;
+  padding-top: 0.75rem;   /* extra breathing room for top y-axis labels */
+  padding-bottom: 0.25rem;
+}
+
+/* --- Empty state --- */
+
+.weight-history-card .empty-chart-msg {
+  text-align: center;
+  color: var(--text-soft);
+  font-style: italic;
+  padding: 2.5rem 1rem;
+  background: var(--surface-muted);
+  border-radius: 12px;
+  border: 1px dashed rgba(148, 163, 184, 0.7);
+}
+
+/* --- Tooltip (WeightTooltip) --- */
+
+.weight-history-card .trends-tooltip {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  box-shadow: 0 4px 10px -1px rgba(15, 23, 42, 0.18);
+  font-size: 0.78rem;
+  color: var(--text);
+}
+
+.weight-history-card .trends-tooltip-label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.weight-history-card .trends-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.weight-history-card .trends-tooltip-row span:first-child {
+  color: var(--text-soft);
+}
+
+/* No divider in WeightTooltip currently, but if you add one: */
+.weight-history-card .trends-tooltip-divider {
+  height: 1px;
+  background: rgba(226, 232, 240, 0.9);
+  margin: 0.35rem 0;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 768px) {
+  .weight-history-card {
+    padding: 1.1rem 1.15rem;
+  }
+
+  .weight-history-card .trends-card-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .weight-history-card .chart-range-toggle {
+    align-self: flex-start;
+  }
+}
+
+/* Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .weight-history-card .chart-range-pill {
+    transition: none !important;
+  }
+}

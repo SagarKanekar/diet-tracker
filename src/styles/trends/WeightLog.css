@@ -1,0 +1,138 @@
+/* src/styles/trends/WeightLog.css
+   Fully standalone styles for the WeightLog component.
+*/
+
+/* --- Card --- */
+
+.weight-log-card {
+  background: var(--surface);
+  border-radius: var(--card-radius);
+  padding: 1.25rem 1.35rem;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-card);
+}
+
+/* Section title used inside the card */
+.weight-log-card .section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --- Weight log form layout --- */
+
+.weight-log-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.2fr) auto;
+  column-gap: 1.25rem;
+  row-gap: 0.75rem;
+  /* align tops of inputs (ignoring bottom helper text) */
+  align-items: flex-start;
+}
+
+/* --- Form groups and inputs --- */
+
+.weight-log-card .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.weight-log-card .form-group label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Helper text below inputs */
+.weight-log-card .muted-text {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  margin: 0.1rem 0 0;
+  line-height: 1.3;
+}
+
+.weight-log-card .trends-input {
+  padding: 0.55rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+  width: 100%;
+}
+
+.weight-log-card .trends-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+}
+
+/* --- Save button --- */
+
+.weight-log-card .btn-save-weight {
+  background: var(--primary);
+  color: #f9fafb;
+  font-weight: 600;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.08s ease,
+    box-shadow 0.16s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-content: center;
+  height: 42px;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+
+  /* Manually push button down to align with inputs (Label height + gap approx 1.5rem) */
+  margin-top: 1.5rem;
+}
+
+.weight-log-card .btn-save-weight:disabled {
+  background: #cbd5e0;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.weight-log-card .btn-save-weight:not(:disabled):hover {
+  background: var(--primary-strong);
+  transform: translateY(-1px);
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 768px) {
+  .weight-log-grid {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .weight-log-card .btn-save-weight {
+    width: 100%;
+    justify-self: stretch;
+    margin-top: 0; /* stacks naturally on mobile */
+  }
+
+  .weight-log-card {
+    padding: 1.1rem 1.15rem;
+  }
+}
+
+/* Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .weight-log-card .btn-save-weight {
+    transition: none !important;
+  }
+}

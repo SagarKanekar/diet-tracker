@@ -1,9 +1,7 @@
 // src/pages/Trends.jsx
 import React, { useMemo, useState } from "react";
 import { useAppState } from "../context/AppStateContext";
-import {
-  computeDayMealTotals,
-} from "../utils/calculations";
+import { computeDayMealTotals } from "../utils/calculations";
 
 import {
   LineChart,
@@ -18,9 +16,14 @@ import {
   ComposedChart,
 } from "recharts";
 
-import { TrendingUp, Scale, Save } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 import "../styles/Trends.css";
+
+// New modular components
+import WeightLog from "../components/trends/WeightLog";
+import IntakeTarget from "../components/trends/IntakeTarget";
+import WeightHistory from "../components/trends/WeightHistory";
 
 const formatDateLabel = (iso) => {
   if (!iso) return "";
@@ -41,6 +44,8 @@ const formatTooltipDate = (iso) => {
 
 /**
  * Small reusable 7 / 30 / all toggle used inside each card.
+ * This stays here as a shared helper and is passed into
+ * IntakeTarget and WeightHistory as a prop.
  */
 function RangeToggle({ value, onChange }) {
   const options = [
@@ -71,6 +76,7 @@ function RangeToggle({ value, onChange }) {
 
 /**
  * Custom tooltip for weight chart so we can show time of day.
+ * Still defined here and passed to WeightHistory as a prop.
  */
 function WeightTooltip({ active, payload, label }) {
   if (!active || !payload || !payload.length) return null;
@@ -94,7 +100,8 @@ function WeightTooltip({ active, payload, label }) {
 }
 
 /**
- * Custom tooltip for merged calorie chart
+ * Custom tooltip for merged calorie chart.
+ * Still defined here and passed to IntakeTarget as a prop.
  */
 function CalorieTooltip({ active, payload, label }) {
   if (!active || !payload || !payload.length) return null;
@@ -131,7 +138,10 @@ export default function Trends() {
   const { state, dispatch, getDayDerived } = useAppState();
   const { dayLogs, selectedDate } = state;
 
-  const dayKeysDep = useMemo(() => Object.keys(dayLogs || {}).join(","), [dayLogs]);
+  const dayKeysDep = useMemo(
+    () => Object.keys(dayLogs || {}).join(","),
+    [dayLogs]
+  );
 
   const [weightInput, setWeightInput] = useState("");
   const [weightTimeInput, setWeightTimeInput] = useState("");
@@ -173,7 +183,7 @@ export default function Trends() {
         extrasBar: extrasKcal * scaleFactor,
       };
     });
-  }, [dayKeysDep, getDayDerived, state]); // End of allCalorieSeries useMemo
+  }, [dayKeysDep, getDayDerived, state]);
 
   const allWeightSeries = useMemo(() => {
     const days = Object.values(dayLogs || {});
@@ -261,233 +271,45 @@ export default function Trends() {
           <span>Health Trends</span>
         </h1>
         <p className="trends-subtitle">
-          Track how consistently you hit your targets and how your weight is moving
-          over time.
+          Track how consistently you hit your targets and how your weight is
+          moving over time.
         </p>
       </header>
 
       {/* Weight logging card */}
-      <section className="trends-card">
-        <div className="section-title">
-          <Scale size={18} />
-          Log Weight Check-in
-        </div>
+      <WeightLog
+        selectedDate={selectedDate}
+        weightInput={weightInput}
+        weightTimeInput={weightTimeInput}
+        canSaveWeight={!!canSaveWeight}
+        onDateChange={handleDateChange}
+        onWeightChange={(e) => setWeightInput(e.target.value)}
+        onTimeChange={(e) => setWeightTimeInput(e.target.value)}
+        onSaveWeight={handleSaveWeight}
+      />
 
-        <div className="weight-log-grid">
-          <div className="form-group">
-            <label htmlFor="trend-date">Date</label>
-            <input
-              id="trend-date"
-              type="date"
-              className="trends-input"
-              value={selectedDate || ""}
-              onChange={handleDateChange}
-            />
-          </div>
+      {/* Calorie Intake vs. Target (TDEE) card */}
+      <IntakeTarget
+        calorieRange={calorieRange}
+        onCalorieRangeChange={setCalorieRange}
+        hasCalorieData={hasCalorieData}
+        calorieSeries={calorieSeries}
+        RangeToggle={RangeToggle}
+        CalorieTooltip={CalorieTooltip}
+        formatDateLabel={formatDateLabel}
+      />
 
-          <div className="form-group">
-            <label htmlFor="trend-weight">Weight (kg)</label>
-            <input
-              id="trend-weight"
-              type="number"
-              inputMode="decimal"
-              className="trends-input"
-              value={weightInput}
-              onChange={(e) => setWeightInput(e.target.value)}
-              placeholder="e.g. 72.5"
-            />
-            <p className="muted-text">Logs weight for the currently selected day.</p>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="trend-time">Time</label>
-            <input
-              id="trend-time"
-              type="time"
-              className="trends-input"
-              value={weightTimeInput}
-              onChange={(e) => setWeightTimeInput(e.target.value)}
-            />
-            <p className="muted-text">Optional check-in time.</p>
-          </div>
-
-          <button
-            type="button"
-            className="btn-save-weight"
-            onClick={handleSaveWeight}
-            disabled={!canSaveWeight}
-          >
-            <Save size={16} />
-            Save
-          </button>
-        </div>
-      </section>
-
-      {/* Calorie chart card */}
-      <section className="trends-card">
-        <div className="trends-card-header-row">
-          <div className="section-title">
-            <TrendingUp size={18} color="#3b82f6" />
-            Calorie Intake vs. Target (TDEE)
-          </div>
-          <RangeToggle value={calorieRange} onChange={setCalorieRange} />
-        </div>
-
-        {!hasCalorieData ? (
-          <div className="empty-chart-msg">
-            Not enough data yet. Log meals for at least two days to see your
-            trend line.
-          </div>
-        ) : (
-          <>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={calorieSeries}
-                  margin={{ left: 0, right: 12, top: 10, bottom: 6 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(203,213,225,0.6)"
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={formatDateLabel}
-                    minTickGap={16}
-                    tick={{ fontSize: 11, fill: "#64748b" }}
-                  />
-                  {/* Left axis: calories for lines */}
-                  <YAxis
-                    yAxisId="left"
-                    tick={{ fontSize: 11, fill: "#64748b" }}
-                    tickFormatter={(v) => `${v}`}
-                  />
-                  {/* Right axis: stacked meals (hidden, just for scaling) */}
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    hide
-                    tickFormatter={(v) => `${v}`}
-                  />
-                  <Tooltip content={<CalorieTooltip />} />
-                  <Legend
-                    wrapperStyle={{ fontSize: 12 }}
-                    formatter={(val) => {
-                      if (val === "intake") return "Intake";
-                      if (val === "target") return "Dynamic TDEE";
-                      if (val === "lunch") return "Lunch";
-                      if (val === "dinner") return "Dinner";
-                      if (val === "extras") return "Extras";
-                      return val;
-                    }}
-                  />
-                  {/* Stacked bars, like volume but under the lines */}
-                  <Bar
-                    yAxisId="right"
-                    dataKey="lunchBar"
-                    stackId="meals"
-                    fill="#b7ded2"     // lunch: soft teal
-                    barSize={14}
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar
-                    yAxisId="right"
-                    dataKey="dinnerBar"
-                    stackId="meals"
-                    fill="#f6a6b2"     // dinner: soft pink
-                    barSize={14}
-                  />
-                  <Bar
-                    yAxisId="right"
-                    dataKey="extrasBar"
-                    stackId="meals"
-                    fill="#f7c297"     // extras: warm apricot
-                    barSize={14}
-                  />
-                  {/* Lines on top */}
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="intake"
-                    stroke="#2b7fb6"
-                    strokeWidth={2}
-                    dot={{ r: 2 }}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="target"
-                    stroke="#ea580c"
-                    strokeWidth={2}
-                    dot={false}
-                    strokeDasharray="4 4"
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="chart-volume-legend">
-              <span className="legend-dot legend-lunch" />
-              <span>Lunch</span>
-              <span className="legend-dot legend-dinner" />
-              <span>Dinner</span>
-              <span className="legend-dot legend-extras" />
-              <span>Extras</span>
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* Weight chart card */}
-      <section className="trends-card">
-        <div className="trends-card-header-row">
-          <div className="section-title">
-            <Scale size={18} />
-            Weight History
-          </div>
-          <RangeToggle value={weightRange} onChange={setWeightRange} />
-        </div>
-
-        {!hasWeightData ? (
-          <div className="empty-chart-msg">
-            No weight trend yet. Log your weight on different days to see the
-            curve.
-          </div>
-        ) : (
-          <div className="chart-container chart-container-weight">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weightSeries} margin={{ left: 0, right: 12 }}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(203,213,225,0.6)"
-                />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatDateLabel}
-                  minTickGap={16}
-                  tick={{ fontSize: 11, fill: "#64748b" }}
-                />
-                <YAxis
-                  domain={weightDomain}
-                  tick={{ fontSize: 11, fill: "#64748b" }}
-                  tickFormatter={(v) => `${v} kg`}
-                  width={55}
-                />
-                <Tooltip content={<WeightTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="weight"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  dot={{ r: 2 }}
-                  activeDot={{ r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </section>
+      {/* Weight History card */}
+      <WeightHistory
+        weightRange={weightRange}
+        onWeightRangeChange={setWeightRange}
+        hasWeightData={hasWeightData}
+        weightSeries={weightSeries}
+        weightDomain={weightDomain}
+        RangeToggle={RangeToggle}
+        WeightTooltip={WeightTooltip}
+        formatDateLabel={formatDateLabel}
+      />
     </div>
   );
 }
