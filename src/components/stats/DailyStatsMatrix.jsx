@@ -158,8 +158,6 @@ export default function DailyStatsMatrix() {
     []
   );
 
-  const profileDefaultActivityFactorDep = profile?.defaultActivityFactor ?? 1.2;
-
   // Build allDays (restored to original logic from Stats.jsx, newest first)
   const allDays = useMemo(() => {
     const entries = Object.values(dayLogs || {});
@@ -178,8 +176,19 @@ export default function DailyStatsMatrix() {
         // Negative = weight loss (matches your old logic)
         const estDeltaKg = -(deficit / 7700);
 
+        // Effective activity factor:
+        // - Prefer the canonical derived AF from tdeeBreakdown.afComputed
+        // - Fall back to manual AF on the day
+        // - Then profile default / 1.2 as a last resort
+        const activityFactorRaw =
+          tdeeBreakdown?.afComputed ??
+          day.activityFactor ??
+          profile?.defaultActivityFactor ??
+          1.2;
         const activityFactor =
-          day.activityFactor ?? profileDefaultActivityFactorDep;
+          activityFactorRaw === null || activityFactorRaw === undefined
+            ? null
+            : Number(activityFactorRaw);
 
         // Pull NEAT / EAT / TEF from the breakdown (restored)
         const neatKcal = safeNum(tdeeBreakdown?.neat ?? 0);
@@ -229,7 +238,7 @@ export default function DailyStatsMatrix() {
 
     mapped.sort((a, b) => new Date(b.date) - new Date(a.date));
     return mapped;
-  }, [dayKeysDep, derivedByDate, profileDefaultActivityFactorDep]);
+  }, [dayKeysDep, derivedByDate, profile]);
 
   const filteredDays = useMemo(() => {
     if (!pickedDate) return allDays;
