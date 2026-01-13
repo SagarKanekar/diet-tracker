@@ -43,7 +43,7 @@ export default function TDEEDecomposition() {
 
   const defaultAF = profileDefaultActivityFactor;
 
-  const [showDecomposition, setShowDecomposition] = useState(true);
+  const [showDecomposition, setShowDecomposition] = useState(false);
   const [decompositionDays, setDecompositionDays] = useState(14);
 
   // Latest logged date key across all day logs
@@ -192,9 +192,9 @@ export default function TDEEDecomposition() {
             type="button"
             className="stats-toggle-btn"
             onClick={() => setShowDecomposition((s) => !s)}
-            aria-label={`Toggle ${showDecomposition ? "hide" : "show"} decomposition`}
+            aria-label={`Toggle ${showDecomposition ? "hide" : "show"} TDEE decomposition`}
           >
-            {showDecomposition ? "Hide" : "Show"}
+            {showDecomposition ? "Hide details" : "Show details"}
           </button>
         </div>
       </div>
