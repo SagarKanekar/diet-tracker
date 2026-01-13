@@ -2,8 +2,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAppState } from "../context/AppStateContext";
-import { 
-  computeDayMealTotals, 
+import {
+  computeDayMealTotals,
+  computeMomentum,   // new
 } from "../utils/calculations";
 import { 
   LayoutDashboard, 
@@ -52,6 +53,8 @@ export default function Dashboard() {
   });
 
   const totalDaysLogged = effectiveDays.length;
+
+  const momentum = computeMomentum({ state, getDayDerived, windowDays: 5 });
 
   // Aggregates
   let totalIntakeAllTime = 0;
@@ -121,16 +124,48 @@ export default function Dashboard() {
       {/* 2. THE TRIO ROW: Hydration, Streak, All-Time */}
       <section className="dash-grid-3">
         
-        {/* Hydration */}
+        {/* Momentum */}
         <div className="dash-card">
           <div className="dc-header">
-            <span className="dc-title"><Droplet size={16}/> Hydration</span>
+            <span className="dc-title">
+              <Activity size={16}/> Momentum
+            </span>
           </div>
-          <div className="dc-value text-blue">
-            {todayHydration.toFixed(1)} <span style={{fontSize:'1rem', color:'#a0aec0'}}>L</span>
+
+          {/* Simple speedometer bar/gauge v1 */}
+          <div className="momentum-gauge">
+            <div className="momentum-track">
+              <div
+                className={`momentum-fill ${
+                  momentum.momentumScaled > 0.66
+                    ? "momentum-fill--too-fast-loss"
+                    : momentum.momentumScaled > 0.2
+                    ? "momentum-fill--good-loss"
+                    : momentum.momentumScaled < -0.66
+                    ? "momentum-fill--too-fast-gain"
+                    : momentum.momentumScaled < -0.2
+                    ? "momentum-fill--gain"
+                    : "momentum-fill--neutral"
+                }`}
+                style={{
+                  // convert [-1,1] -> [0,100] centered at 50
+                  left: "50%",
+                  transform: `translateX(${momentum.momentumScaled * 50}%)`,
+                }}
+              />
+            </div>
           </div>
+
           <div className="dc-footer">
-            Logged today
+            {momentum.daysConsidered < 2 ? (
+              <>Warming up – log a few more days to see trend</>
+            ) : (
+              <>
+                {momentum.avgDeltaPerDay >= 0 ? "Avg loss" : "Avg gain"}{" "}
+                {Math.abs(momentum.avgDeltaPerDay).toFixed(2)} kg/day
+                {" "}over last {momentum.daysConsidered} days
+              </>
+            )}
           </div>
         </div>
 

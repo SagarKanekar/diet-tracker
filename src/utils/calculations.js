@@ -91,7 +91,7 @@ export function computeDayMealTotals(dayOrMeals) {
 
 // ---------- Legacy TDEE (kept for compatibility) ----------
 export function computeTDEEForDay(day, profile = {}) {
-  const explicitTdee = day?.tdee ?? day?.TDEE ?? safeGet(day, "caloriesTarget");
+  const explicitTdee = day.day?.tdee ?? day?.TDEE ?? safeGet(day, "caloriesTarget");
   if (typeof explicitTdee === "number" && !Number.isNaN(explicitTdee)) return Math.round(explicitTdee);
 
   const bmr = Number(profile.bmr ?? profile.BMR ?? profile.calculatedBmr ?? 0) || 0;
@@ -324,6 +324,54 @@ export function computeTDEEfromAFandTEF({ bmr, activityFactor = 1.0, intakeKcal 
   const tef = round(toNum(intakeKcal, 0) * effectiveTefRatio);
   const tdee = round(maintenancePlusActivity + tef);
   return { maintenancePlusActivity, tef, tdee };
+}
+
+export function computeMomentum({ state, getDayDerived, windowDays = 5 }) {
+  const dayLogs = state.dayLogs || {};
+  const dates = Object.keys(dayLogs)
+    .filter((d) => !!d)
+    .sort((a, b) => new Date(a) - new Date(b)); // oldest -> newest
+
+  if (dates.length === 0) {
+    return { momentumScaled: 0, avgDeltaPerDay: 0, daysConsidered: 0 };
+  }
+
+  const recentDates = dates.slice(-windowDays);
+
+  let sumDeltaKg = 0;
+  let count = 0;
+
+  for (const dateKey of recentDates) {
+    const derived = getDayDerived(state, dateKey) || {};
+    const tdee = derived.tdee || 0;
+    const total = derived.totalIntake || 0;
+
+    if (!tdee && !total) continue;
+
+    const deficit = tdee - total;
+    const estDeltaKg = -(deficit / 7700); // same as elsewhere
+
+    sumDeltaKg += estDeltaKg;
+    count += 1;
+  }
+
+  if (!count) {
+    return { momentumScaled: 0, avgDeltaPerDay: 0, daysConsidered: 0 };
+  }
+
+  const avgDeltaPerDay = sumDeltaKg / count;
+
+  // Calibration constants (can be tweaked)
+  const TARGET_RATE_PER_DAY = 0.1;     // ~0.7 kg/week
+  const MAX_ABS_MULTIPLIER = 1.5;      // beyond 1.5x target = clamp
+
+  const normalized = avgDeltaPerDay / TARGET_RATE_PER_DAY;
+  const clamped = Math.max(-MAX_ABS_MULTIPLIER, Math.min(MAX_ABS_MULTIPLIER, normalized));
+
+  // Scale to [-1, 1]
+  const momentumScaled = clamped / MAX_ABS_MULTIPLIER;
+
+  return { momentumScaled, avgDeltaPerDay, daysConsidered: count };
 }
 
 // End of merged calculations.js

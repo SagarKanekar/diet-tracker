@@ -384,3 +384,53 @@
     transition: none !important;
   }
 }
+
+.momentum-gauge {
+  margin-top: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.momentum-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #fee2e2, /* strong gain */
+    #fecaca,
+    #e5e7eb, /* neutral center */
+    #bbf7d0,
+    #dcfce7  /* strong loss */
+  );
+  overflow: hidden;
+}
+
+.momentum-fill {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  background: #4b5563;
+  transition: transform 0.4s ease;
+}
+
+.momentum-fill--good-loss {
+  background: #16a34a;
+}
+
+.momentum-fill--too-fast-loss {
+  background: #ea580c;
+}
+
+.momentum-fill--gain {
+  background: #f97316;
+}
+
+.momentum-fill--too-fast-gain {
+  background: #dc2626;
+}
+
+.momentum-fill--neutral {
+  background: #4b5563;
+} 
