@@ -51,6 +51,8 @@ export default function Dashboard() {
     return totals.total > 0 || !!day.hydrationLitres || day.weightKg != null;
   });
 
+  const totalDaysLogged = effectiveDays.length;
+
   // Aggregates
   let totalIntakeAllTime = 0;
   let totalBurnAllTime = 0;
@@ -62,23 +64,6 @@ export default function Dashboard() {
   });
 
   const allTimeNetDeficit = totalBurnAllTime - totalIntakeAllTime;
-
-  // Streak Logic
-  const sortedDays = [...effectiveDays].sort((a, b) => new Date(a.date) - new Date(b.date));
-  let currentStreak = 0;
-  
-  // Iterate backwards from most recent entry
-  for (let i = sortedDays.length - 1; i >= 0; i--) {
-    const d = sortedDays[i];
-    const { tdee, totalIntake } = getDayDerived(state, d.date);
-    
-    // Success = You didn't overeat (Deficit >= 0)
-    if ((tdee - totalIntake) >= 0) {
-      currentStreak += 1;
-    } else {
-      break;
-    }
-  }
 
   return (
     <div className="dashboard-page">
@@ -149,16 +134,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Streak */}
+        {/* Days Logged */}
         <div className="dash-card">
           <div className="dc-header">
-            <span className="dc-title"><TrendingUp size={16}/> Streak</span>
+            <span className="dc-title">
+              <History size={16}/> Days logged
+            </span>
           </div>
-          <div className="dc-value text-orange">
-            {currentStreak} <span style={{fontSize:'1rem', color:'#a0aec0'}}>days</span>
+          <div className="dc-value">
+            {totalDaysLogged}
           </div>
           <div className="dc-footer">
-            At or under limit
+            Total days you’ve actively logged so far
           </div>
         </div>
 
