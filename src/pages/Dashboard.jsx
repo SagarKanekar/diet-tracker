@@ -189,6 +189,7 @@ export default function Dashboard() {
             avgDeltaPerDay={momentum.avgDeltaPerDay}
             days={momentum.daysConsidered}
             history={momentum.history}
+            currentZoneId={momentum.currentZoneId}
           />
         </div>
         {/* All-Time Deficit – stays third */}

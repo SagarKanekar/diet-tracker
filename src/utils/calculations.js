@@ -326,6 +326,23 @@ export function computeTDEEfromAFandTEF({ bmr, activityFactor = 1.0, intakeKcal 
   return { maintenancePlusActivity, tef, tdee };
 }
 
+// Map average daily deficit (kcal/day) into a zone id.
+// Bands (deficit = TDEE - intake):
+// danger : deficit < -400
+// gaining : [-400, -150)
+// stable : [-150, +100)
+// good : [ +100, +350)
+// great : [ +350, +500]
+// caution : > +500 (currently we show same as "great")
+function mapDeficitToZoneId(deficitKcalPerDay) {
+  if (deficitKcalPerDay < -400) return "too-much-gain"; // Danger
+  if (deficitKcalPerDay < -150) return "steady-gain"; // Gaining
+  if (deficitKcalPerDay < 100) return "low-change"; // Stable
+  if (deficitKcalPerDay < 350) return "good-loss"; // Good
+  if (deficitKcalPerDay <= 500) return "great-loss"; // Great
+  return "great-loss"; // Treat >500 as same visual zone
+}
+
 // Map a normalized value in [-1, 1] into a zone id used by the Momentum gauge.
 // This mirrors the breakpoints used in MomentumGauge.jsx (danger/gaining/stable/good/great/caution).
 function mapNormalizedToZoneId(normalized) {
@@ -335,7 +352,7 @@ function mapNormalizedToZoneId(normalized) {
   if (normalized < -0.3) return "steady-gain"; // Gaining
   if (normalized < 0.15) return "low-change"; // Stable / Maintenance
   if (normalized < 0.75) return "good-loss"; // Good
-  return "rapid-loss"; // Great / Caution
+  return "great-loss"; // Great / Caution
 }
 
 export function computeMomentum({ state, getDayDerived, windowDays = 5 }) {
@@ -349,6 +366,7 @@ export function computeMomentum({ state, getDayDerived, windowDays = 5 }) {
       avgDeltaPerDay: 0,
       daysConsidered: 0,
       history: [],
+      currentZoneId: "low-change",
     };
   }
   const recentDates = dates.slice(-windowDays);
@@ -365,8 +383,8 @@ export function computeMomentum({ state, getDayDerived, windowDays = 5 }) {
     const deficit = tdee - total; // positive = under target (good)
     sumDeficit += deficit;
     count += 1;
-    // Per-day normalized "momentum" based on deficit
-    const estDeltaPerDay = deficit / 7700; // kg/day (positive = loss)
+    // Per-day kg/day, positive = loss
+    const estDeltaPerDay = deficit / 7700;
     const normalized = estDeltaPerDay / TARGET_RATE_PER_DAY;
     const clamped = Math.max(-MAX_ABS_MULTIPLIER, Math.min(MAX_ABS_MULTIPLIER, normalized));
     const momentumScaledForDay = clamped / MAX_ABS_MULTIPLIER;
@@ -376,7 +394,7 @@ export function computeMomentum({ state, getDayDerived, windowDays = 5 }) {
       tdee,
       totalIntake: total,
       momentumScaled: momentumScaledForDay,
-      zoneId: mapNormalizedToZoneId(momentumScaledForDay),
+      zoneId: mapDeficitToZoneId(deficit), // <-- uses your kcal bands
     });
   }
   if (!count) {
@@ -385,18 +403,24 @@ export function computeMomentum({ state, getDayDerived, windowDays = 5 }) {
       avgDeltaPerDay: 0,
       daysConsidered: 0,
       history: [],
+      currentZoneId: "low-change",
     };
   }
+  // Average deficit in kcal/day
   const avgDeficitPerDay = sumDeficit / count;
+  // Convert to kg/day (positive = loss)
   const avgDeltaPerDay = avgDeficitPerDay / 7700;
+  // Overall normalized momentum for the needle
   const normalizedAvg = avgDeltaPerDay / TARGET_RATE_PER_DAY;
   const clampedAvg = Math.max(-MAX_ABS_MULTIPLIER, Math.min(MAX_ABS_MULTIPLIER, normalizedAvg));
   const momentumScaled = clampedAvg / MAX_ABS_MULTIPLIER;
+  const currentZoneId = mapDeficitToZoneId(avgDeficitPerDay);
   return {
     momentumScaled,
     avgDeltaPerDay,
     daysConsidered: count,
-    history, // newest will be last because dates is oldest->newest and we slice from the end
+    history,
+    currentZoneId,
   };
 }
 

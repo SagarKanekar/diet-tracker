@@ -67,10 +67,12 @@ function getZoneById(id) {
   return ZONES.find((z) => z.id === id) || ZONES[2]; // default to Maintenance/Stable
 }
 
-export default function MomentumGauge({ value, avgDeltaPerDay, days, history = [] }) {
+export default function MomentumGauge({ value, avgDeltaPerDay, days, history = [], currentZoneId }) {
   const v = Math.max(-1, Math.min(1, value ?? 0));
   const needleAngle = valueToAngle(v);
-  const currentZone = getCurrentZone(v);
+  const currentZone = currentZoneId
+    ? getZoneById(currentZoneId)
+    : getCurrentZone(v); // fallback if currentZoneId is missing
   // --- WEIGHT CHANGE (kg/day) – keeping this for internal logic if needed ---
   const magnitudeKgPerDay = Math.abs(avgDeltaPerDay || 0);
   // --- DEFICIT IN KCAL/DAY (this is what we’ll show in the UI) ---
