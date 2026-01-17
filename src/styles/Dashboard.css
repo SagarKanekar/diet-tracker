@@ -1,46 +1,26 @@
-/* src/styles/Dashboard.css
-   Dashboard-specific layout & polish
-   Uses global tokens from styles.css
-*/
+/* src/styles/Dashboard.css */
 
-/* --- Root page wrapper --- */
+/* Page container */
 .dashboard-page {
-  /* The Layout's .page-container already centers content;
-     here we just handle vertical rhythm & internal layout. */
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.25rem 0 0.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1.2rem 2rem;
 }
 
-/* --- Header --- */
+/* Header */
 .dashboard-header {
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  margin-bottom: 1.5rem;
 }
 
 .dashboard-title {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--text);
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  margin: 0;
-}
-
-.dashboard-title-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--primary-soft);
-  color: var(--primary);
+  gap: 0.6rem;
+  font-size: 1.4rem;
+  font-weight: 700;
 }
 
 .dashboard-subtitle {
@@ -48,134 +28,54 @@
   color: var(--text-soft);
 }
 
-/* --- Generic cards --- */
+/* Cards */
 .dash-card {
   background: var(--surface);
   border-radius: var(--card-radius);
-  padding: 1.25rem 1.35rem;
-  box-shadow: var(--shadow-soft);
+  padding: 1.15rem 1.3rem;
   border: 1px solid var(--border-card);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-width: 0;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: var(--shadow-soft);
 }
 
-.dash-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.09);
-}
-
-/* Card header + titles inside cards */
 .dc-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
 }
 
 .dc-title {
-  color: var(--text-muted);
+  font-size: var(--text-sm);
   font-weight: 600;
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
-.dc-icon-pill {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-muted);
-}
-
-.dc-meta {
+.dc-subtitle {
   font-size: var(--text-xs);
   color: var(--text-soft);
 }
 
 .dc-value {
-  font-size: 1.7rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  color: var(--text);
-  line-height: 1.05;
-  margin-bottom: 0.25rem;
 }
 
 .dc-footer {
+  margin-top: 0.5rem;
   font-size: var(--text-xs);
   color: var(--text-soft);
-  font-weight: 500;
-  margin-top: 0.4rem;
 }
 
-/* --- Hero section (Today's Net) --- */
-
+/* Hero grid (top card) */
 .dash-hero-grid {
   display: grid;
-  gap: 1.25rem;
-}
-
-/* On larger screens, give space for a future right-side summary card */
-@media (min-width: 960px) {
-  .dash-hero-grid {
-    grid-template-columns: minmax(0, 1.75fr) minmax(0, 1.15fr);
-  }
-}
-
-/* If no second card is present, the first just stretches full width */
-.dash-hero-grid > .dash-card:only-child {
-  grid-column: 1 / -1;
+  margin-bottom: 1.2rem;
 }
 
 .hero-value-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.75rem;
-}
-
-.hero-main-value {
-  font-size: 1.9rem;
-  font-weight: 800;
-}
-
-.hero-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  font-size: var(--text-xs);
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.hero-status-pill--good {
-  border-color: rgba(22, 163, 74, 0.6);
-  color: #15803d;
-  background: #dcfce7;
-}
-
-.hero-status-pill--bad {
-  border-color: rgba(239, 68, 68, 0.7);
-  color: #b91c1c;
-  background: #fee2e2;
-}
-
-.hero-subtext {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin-top: 0.3rem;
+  margin-top: 0.35rem;
 }
 
 /* Progress bar */
@@ -194,51 +94,20 @@
   transition: width 0.4s ease;
 }
 
-/* Intake vs target row */
-.hero-meta-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0.75rem;
-  font-size: var(--text-xs);
-  color: var(--text-soft);
-  margin-top: 0.5rem;
-}
-
-/* --- Trio row (Hydration, Streak, All-time) --- */
-
+/* Trio row (Momentum, Days Logged, All-time) */
 .dash-grid-3 {
   display: grid;
   gap: 1.1rem;
+  margin-bottom: 1.2rem;
 }
 
-/* use auto-fit for nicer wrapping on mid screens */
 @media (min-width: 720px) {
   .dash-grid-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-.trio-card-label {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--text-soft);
-}
-
-.trio-card-value {
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-.trio-card-sub {
-  font-size: var(--text-xs);
-  margin-top: 0.25rem;
-  color: var(--text-muted);
-}
-
-/* --- Quick Actions section --- */
-
+/* Quick actions */
 .dash-actions {
   background: var(--surface);
   border-radius: var(--card-radius);
@@ -250,24 +119,6 @@
   box-shadow: var(--shadow-soft);
 }
 
-.dash-actions-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.dash-actions-title {
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.dash-actions-subtitle {
-  font-size: var(--text-xs);
-  color: var(--text-soft);
-}
-
-/* Buttons row */
 .dash-btn-row {
   display: flex;
   flex-wrap: wrap;
@@ -275,18 +126,20 @@
   margin-top: 0.3rem;
 }
 
-/* Base button style (for <button> or <Link> with className="dash-btn") */
 .dash-btn {
-  padding: 0.55rem 1rem;
-  border-radius: 999px;
-  font-weight: 600;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: background 0.16s ease, border-color 0.16s ease,
-    transform 0.08s ease, box-shadow 0.16s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.45rem 0.95rem;
+  background: #e5e7eb;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.1s ease;
   text-decoration: none;
   font-size: var(--text-sm);
   min-height: 36px;
@@ -324,7 +177,7 @@
   height: 16px;
 }
 
-/* --- Color helpers (for status text) --- */
+/* Color helpers */
 .text-green {
   color: #16a34a;
 }
@@ -341,7 +194,7 @@
   color: var(--accent-warm);
 }
 
-/* --- Responsive tweaks --- */
+/* Responsive tweaks */
 @media (max-width: 720px) {
   .dashboard-header {
     padding-bottom: 0.5rem;
@@ -369,68 +222,4 @@
     width: 100%;
     justify-content: center;
   }
-
-  .hero-meta-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 }
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  .dash-card,
-  .dash-btn,
-  .progress-bar-fill {
-    transition: none !important;
-  }
-}
-
-.momentum-gauge {
-  margin-top: 0.6rem;
-  margin-bottom: 0.4rem;
-}
-
-.momentum-track {
-  position: relative;
-  height: 10px;
-  border-radius: 999px;
-  background: linear-gradient(
-    to right,
-    #fee2e2, /* strong gain */
-    #fecaca,
-    #e5e7eb, /* neutral center */
-    #bbf7d0,
-    #dcfce7  /* strong loss */
-  );
-  overflow: hidden;
-}
-
-.momentum-fill {
-  position: absolute;
-  top: -4px;
-  width: 4px;
-  height: 18px;
-  border-radius: 999px;
-  background: #4b5563;
-  transition: transform 0.4s ease;
-}
-
-.momentum-fill--good-loss {
-  background: #16a34a;
-}
-
-.momentum-fill--too-fast-loss {
-  background: #ea580c;
-}
-
-.momentum-fill--gain {
-  background: #f97316;
-}
-
-.momentum-fill--too-fast-gain {
-  background: #dc2626;
-}
-
-.momentum-fill--neutral {
-  background: #4b5563;
-} 

@@ -1,0 +1,95 @@
+/* src/styles/dashboard/MomentumGauge.css */
+
+.momentum-card-body {
+  margin-top: 0.4rem;
+}
+
+.momentum-gauge-root {
+  position: relative;
+  width: 100%;
+  max-width: 260px;
+  margin: 0.2rem auto 0.4rem auto;
+}
+
+.momentum-gauge-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Background semi-circle */
+.momentum-arc-bg {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.2);
+  stroke-width: 10;
+}
+
+/* Colored arc segments */
+.momentum-arc {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.momentum-arc--gain-bad {
+  stroke: #dc2626; /* strong gain (bad) */
+}
+
+.momentum-arc--gain {
+  stroke: #fb923c; /* moderate gain */
+}
+
+.momentum-arc--loss {
+  stroke: #22c55e; /* healthy loss */
+}
+
+.momentum-arc--loss-bad {
+  stroke: #ea580c; /* too-fast loss */
+}
+
+/* Tick marks */
+.momentum-tick {
+  stroke: rgba(148, 163, 184, 0.7);
+  stroke-width: 1.2;
+}
+
+/* Needle */
+.momentum-needle line {
+  stroke: #111827;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.momentum-needle circle {
+  fill: #111827;
+}
+
+/* Center label block */
+.momentum-gauge-center {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.momentum-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-soft);
+}
+
+.momentum-value {
+  margin-top: 0.15rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.momentum-sub {
+  margin-top: 0.1rem;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
