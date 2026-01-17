@@ -337,40 +337,33 @@ export function computeMomentum({ state, getDayDerived, windowDays = 5 }) {
   }
 
   const recentDates = dates.slice(-windowDays);
-
-  let sumDeltaKg = 0;
+  let sumDeficit = 0; // positive = under target (good), negative = over target (bad)
   let count = 0;
-
   for (const dateKey of recentDates) {
     const derived = getDayDerived(state, dateKey) || {};
     const tdee = derived.tdee || 0;
     const total = derived.totalIntake || 0;
-
     if (!tdee && !total) continue;
-
-    const deficit = tdee - total;
-    const estDeltaKg = -(deficit / 7700); // same as elsewhere
-
-    sumDeltaKg += estDeltaKg;
+    const deficit = tdee - total; // your positive-deficit convention
+    sumDeficit += deficit;
     count += 1;
   }
-
   if (!count) {
     return { momentumScaled: 0, avgDeltaPerDay: 0, daysConsidered: 0 };
   }
-
-  const avgDeltaPerDay = sumDeltaKg / count;
-
+  // Average deficit in kcal/day (positive = under target, negative = over)
+  const avgDeficitPerDay = sumDeficit / count;
+  // Convert that to estimated kg/day, with positive = weight loss
+  // deficit > 0 -> weight loss -> estDeltaKgLoss > 0
+  const avgDeltaPerDay = avgDeficitPerDay / 7700;
   // Calibration constants (can be tweaked)
-  const TARGET_RATE_PER_DAY = 0.1;     // ~0.7 kg/week
-  const MAX_ABS_MULTIPLIER = 1.5;      // beyond 1.5x target = clamp
-
+  const TARGET_RATE_PER_DAY = 0.1; // ~0.7 kg/week
+  const MAX_ABS_MULTIPLIER = 1.5; // beyond 1.5x target = clamp
+  // Now: positive avgDeltaPerDay = loss, negative = gain
   const normalized = avgDeltaPerDay / TARGET_RATE_PER_DAY;
   const clamped = Math.max(-MAX_ABS_MULTIPLIER, Math.min(MAX_ABS_MULTIPLIER, normalized));
-
-  // Scale to [-1, 1]
+  // Scale to [-1, 1], where +1 is strong loss, -1 is strong gain
   const momentumScaled = clamped / MAX_ABS_MULTIPLIER;
-
   return { momentumScaled, avgDeltaPerDay, daysConsidered: count };
 }
 

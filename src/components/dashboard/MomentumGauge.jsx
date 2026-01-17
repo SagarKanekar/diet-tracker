@@ -64,16 +64,21 @@ function getCurrentZone(value) {
 }
 
 export default function MomentumGauge({ value, avgDeltaPerDay, days }) {
-  const v = Math.max(-1, Math.min(1, value ??  0));
+  const v = Math.max(-1, Math.min(1, value ?? 0));
   const needleAngle = valueToAngle(v);
   const currentZone = getCurrentZone(v);
-  const magnitude = Math.abs(avgDeltaPerDay || 0);
-  const isGain = avgDeltaPerDay < 0;
-
-  // SVG config
+  // --- WEIGHT CHANGE (kg/day) – keeping this for internal logic if needed ---
+  const magnitudeKgPerDay = Math.abs(avgDeltaPerDay || 0);
+  // --- DEFICIT IN KCAL/DAY (this is what we’ll show in the UI) ---
+  // computeMomentum uses: estDeltaKg = -(deficit / 7700)
+  // => deficit = -(estDeltaKg * 7700)
+  const avgKcalPerDay = -(avgDeltaPerDay || 0) * 7700;
+  const magnitudeKcalPerDay = Math.abs(avgKcalPerDay);
+  const isDeficit = avgKcalPerDay >= 0; // positive = deficit, negative = surplus
+  // SVG config – tweaked slightly so arcs/labels are not clipped
   const cx = 120;
-  const cy = 105;
-  const outerRadius = 90;
+  const cy = 110; // a touch lower to give top more room
+  const outerRadius = 85; // a bit smaller radius
   const innerRadius = 50;
   const arcRadius = (outerRadius + innerRadius) / 2;
   const strokeWidth = outerRadius - innerRadius;
@@ -84,7 +89,7 @@ export default function MomentumGauge({ value, avgDeltaPerDay, days }) {
       <div className="momentum-gauge-container">
         <svg
           className="momentum-gauge-svg"
-          viewBox="0 0 240 130"
+          viewBox="0 0 240 150"
           aria-label={`Momentum:  ${currentZone.label}`}
         >
           <defs>
@@ -227,12 +232,13 @@ export default function MomentumGauge({ value, avgDeltaPerDay, days }) {
           </div>
           
           <div className="momentum-info__stats">
-            {days >= 2 ?  (
+            {days >= 2 ? (
               <>
                 <span className="momentum-info__value">
-                  {isGain ? "+" : "-"}{magnitude.toFixed(2)}
+                  {isDeficit ? "+" : "-"}
+                  {Math.round(magnitudeKcalPerDay)}
                 </span>
-                <span className="momentum-info__unit">kg/day avg</span>
+                <span className="momentum-info__unit">kcal/day avg</span>
               </>
             ) : (
               <span className="momentum-info__warming">

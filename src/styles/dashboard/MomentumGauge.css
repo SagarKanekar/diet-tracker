@@ -1,11 +1,12 @@
 /* src/styles/dashboard/MomentumGauge.css */
 
 .momentum-gauge-wrapper {
-  padding: 0.25rem 0; /* Fixed: removed errant space */
+  padding: 0.25rem 0;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow: hidden; /* Prevent any overflow issues */
+  /* Allow a tiny bit of bleed so arcs/labels are not clipped */
+  overflow: visible;
 }
 
 .momentum-gauge-container {

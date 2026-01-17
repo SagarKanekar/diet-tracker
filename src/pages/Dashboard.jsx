@@ -165,22 +165,7 @@ export default function Dashboard() {
 
       {/* 2. THE TRIO ROW: Momentum, Days Logged, All-Time */}
       <section className="dash-grid-3">
-        {/* Momentum */}
-        <div className="dash-card">
-          <div className="dc-header">
-            <span className="dc-title">
-              <Activity size={16} /> Momentum
-            </span>
-          </div>
-
-          <MomentumGauge
-            value={momentum.momentumScaled}
-            avgDeltaPerDay={momentum.avgDeltaPerDay}
-            days={momentum.daysConsidered}
-          />
-        </div>
-
-        {/* Days Logged */}
+        {/* Days Logged – now first */}
         <div className="dash-card">
           <div className="dc-header">
             <span className="dc-title">
@@ -192,8 +177,20 @@ export default function Dashboard() {
             Total days you’ve actively logged so far
           </div>
         </div>
-
-        {/* All Time Deficit */}
+        {/* Momentum – now in the middle */}
+        <div className="dash-card">
+          <div className="dc-header">
+            <span className="dc-title">
+              <Activity size={16} /> Momentum
+            </span>
+          </div>
+          <MomentumGauge
+            value={momentum.momentumScaled}
+            avgDeltaPerDay={momentum.avgDeltaPerDay}
+            days={momentum.daysConsidered}
+          />
+        </div>
+        {/* All-Time Deficit – stays third */}
         <div className="dash-card">
           <div className="dc-header">
             <span className="dc-title">
@@ -208,9 +205,7 @@ export default function Dashboard() {
             Est.{" "}
             <strong
               className={
-                allTimeNetDeficit >= 0
-                  ? "text-green"
-                  : "text-red"
+                allTimeNetDeficit >= 0 ? "text-green" : "text-red"
               }
             >
               {(allTimeNetDeficit / 7700).toFixed(2)} kg
