@@ -1,7 +1,11 @@
 /* src/styles/dashboard/MomentumGauge.css */
 
 .momentum-gauge-wrapper {
-  padding: 0. 25rem 0;
+  padding: 0.25rem 0; /* Fixed: removed errant space */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* Prevent any overflow issues */
 }
 
 .momentum-gauge-container {
@@ -9,10 +13,13 @@
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto; /* Center the container */
 }
 
 .momentum-gauge-svg {
-  width:  100%;
+  width: 100%;
   max-width: 260px;
   height: auto;
   display: block;
