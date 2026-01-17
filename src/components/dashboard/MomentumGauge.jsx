@@ -1,5 +1,5 @@
 // src/components/dashboard/MomentumGauge.jsx
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 /**
  * MomentumGauge - A polished speedometer-style gauge for weight loss momentum
@@ -63,16 +63,22 @@ function getCurrentZone(value) {
   return ZONES[ZONES. length - 1];
 }
 
-export default function MomentumGauge({ value, avgDeltaPerDay, days }) {
+function getZoneById(id) {
+  return ZONES.find((z) => z.id === id) || ZONES[2]; // default to Maintenance/Stable
+}
+
+export default function MomentumGauge({ value, avgDeltaPerDay, days, history = [] }) {
   const v = Math.max(-1, Math.min(1, value ?? 0));
   const needleAngle = valueToAngle(v);
   const currentZone = getCurrentZone(v);
   // --- WEIGHT CHANGE (kg/day) – keeping this for internal logic if needed ---
   const magnitudeKgPerDay = Math.abs(avgDeltaPerDay || 0);
   // --- DEFICIT IN KCAL/DAY (this is what we’ll show in the UI) ---
-  // computeMomentum uses: estDeltaKg = -(deficit / 7700)
-  // => deficit = -(estDeltaKg * 7700)
-  const avgKcalPerDay = -(avgDeltaPerDay || 0) * 7700;
+  // From computeMomentum, avgDeltaPerDay is now:
+  // avgDeltaPerDay = avgDeficitPerDay / 7700
+  // -> avgDeficitPerDay = avgDeltaPerDay * 7700
+  // where positive = deficit (good), negative = surplus (bad)
+  const avgKcalPerDay = (avgDeltaPerDay || 0) * 7700;
   const magnitudeKcalPerDay = Math.abs(avgKcalPerDay);
   const isDeficit = avgKcalPerDay >= 0; // positive = deficit, negative = surplus
   // SVG config – tweaked slightly so arcs/labels are not clipped
@@ -83,6 +89,25 @@ export default function MomentumGauge({ value, avgDeltaPerDay, days }) {
   const arcRadius = (outerRadius + innerRadius) / 2;
   const strokeWidth = outerRadius - innerRadius;
   const labelRadius = arcRadius; // Place labels on the arc
+  const [activeDotIndex, setActiveDotIndex] = useState(null);
+  const popoverRef = useRef(null);
+  // Close on click outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (!popoverRef.current) return;
+      if (!popoverRef.current.contains(e.target)) {
+        setActiveDotIndex(null);
+      }
+    }
+    if (activeDotIndex !== null) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [activeDotIndex]);
 
   return (
     <div className="momentum-gauge-wrapper">
@@ -248,11 +273,69 @@ export default function MomentumGauge({ value, avgDeltaPerDay, days }) {
           </div>
           
           <div className="momentum-info__period">
-            {days < 2 
-              ? "Log a few more days" 
-              : `Last ${days} days`
+            {days < 2
+              ? "Log a few more days"
+              : `Last ${Math.min(days, 5)} days`
             }
           </div>
+          {/* Last 5 days dot strip */}
+          {history && history.length > 0 && (
+            <div className="momentum-history">
+              {history.map((dayInfo, index) => {
+                const zone = getZoneById(dayInfo.zoneId);
+                const isActive = index === activeDotIndex;
+                return (
+                  <button
+                    key={dayInfo.date}
+                    type="button"
+                    className={`momentum-history__dot ${isActive ? "momentum-history__dot--active" : ""}`}
+                    style={{ backgroundColor: zone.color }}
+                    onClick={() =>
+                      setActiveDotIndex(isActive ? null : index)
+                    }
+                    aria-label={`Day ${dayInfo.date}: ${zone.label}`}
+                  />
+                );
+              })}
+              {/* Popover */}
+              {activeDotIndex !== null && history[activeDotIndex] && (
+                <div
+                  className="momentum-history__popover"
+                  ref={popoverRef}
+                >
+                  {(() => {
+                    const d = history[activeDotIndex];
+                    const zone = getZoneById(d.zoneId);
+                    const deficit = d.deficit;
+                    const deficitSign = deficit >= 0 ? "+" : "-";
+                    const absDeficit = Math.abs(deficit);
+                    return (
+                      <>
+                        <div className="mh-popover__date">
+                          {d.date}
+                        </div>
+                        <div className="mh-popover__zone" style={{ color: zone.color }}>
+                          {zone.label}
+                        </div>
+                        <div className="mh-popover__line">
+                          <span>Deficit</span>
+                          <span>{deficitSign}{Math.round(absDeficit)} kcal</span>
+                        </div>
+                        <div className="mh-popover__line">
+                          <span>Intake</span>
+                          <span>{Math.round(d.totalIntake)} kcal</span>
+                        </div>
+                        <div className="mh-popover__line">
+                          <span>TDEE</span>
+                          <span>{Math.round(d.tdee)} kcal</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

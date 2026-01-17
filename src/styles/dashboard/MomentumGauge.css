@@ -151,3 +151,81 @@
     font-size: 0.8rem;
   }
 }
+
+.momentum-history {
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  position: relative;
+}
+
+.momentum-history__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid #0f172a; /* dark outline similar to Google chips */
+  padding: 0;
+  cursor: pointer;
+  background-clip: padding-box;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.momentum-history__dot:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.2);
+}
+
+.momentum-history__dot--active {
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.35);
+}
+
+/* Popover */
+.momentum-history__popover {
+  position: absolute;
+  bottom: 140%; /* above the dots */
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 180px;
+  max-width: 220px;
+  padding: 0.6rem 0.75rem;
+  background: #0f172a;
+  color: #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+  font-size: 0.75rem;
+  z-index: 10;
+}
+
+.momentum-history__popover::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+.mh-popover__date {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin-bottom: 0.15rem;
+}
+
+.mh-popover__zone {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.mh-popover__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.1rem;
+}

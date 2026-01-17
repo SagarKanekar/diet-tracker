@@ -326,45 +326,78 @@ export function computeTDEEfromAFandTEF({ bmr, activityFactor = 1.0, intakeKcal 
   return { maintenancePlusActivity, tef, tdee };
 }
 
+// Map a normalized value in [-1, 1] into a zone id used by the Momentum gauge.
+// This mirrors the breakpoints used in MomentumGauge.jsx (danger/gaining/stable/good/great/caution).
+function mapNormalizedToZoneId(normalized) {
+  // Remember we clamp to [-MAX_ABS_MULTIPLIER, MAX_ABS_MULTIPLIER] and then divide
+  // so here we assume normalized is already in [-1, 1].
+  if (normalized < -0.7) return "too-much-gain"; // Danger
+  if (normalized < -0.3) return "steady-gain"; // Gaining
+  if (normalized < 0.15) return "low-change"; // Stable / Maintenance
+  if (normalized < 0.75) return "good-loss"; // Good
+  return "rapid-loss"; // Great / Caution
+}
+
 export function computeMomentum({ state, getDayDerived, windowDays = 5 }) {
   const dayLogs = state.dayLogs || {};
   const dates = Object.keys(dayLogs)
     .filter((d) => !!d)
     .sort((a, b) => new Date(a) - new Date(b)); // oldest -> newest
-
   if (dates.length === 0) {
-    return { momentumScaled: 0, avgDeltaPerDay: 0, daysConsidered: 0 };
+    return {
+      momentumScaled: 0,
+      avgDeltaPerDay: 0,
+      daysConsidered: 0,
+      history: [],
+    };
   }
-
   const recentDates = dates.slice(-windowDays);
-  let sumDeficit = 0; // positive = under target (good), negative = over target (bad)
+  let sumDeficit = 0;
   let count = 0;
+  const TARGET_RATE_PER_DAY = 0.1; // ~0.7 kg/week
+  const MAX_ABS_MULTIPLIER = 1.5; // beyond 1.5x target = clamp
+  const history = [];
   for (const dateKey of recentDates) {
     const derived = getDayDerived(state, dateKey) || {};
     const tdee = derived.tdee || 0;
     const total = derived.totalIntake || 0;
     if (!tdee && !total) continue;
-    const deficit = tdee - total; // your positive-deficit convention
+    const deficit = tdee - total; // positive = under target (good)
     sumDeficit += deficit;
     count += 1;
+    // Per-day normalized "momentum" based on deficit
+    const estDeltaPerDay = deficit / 7700; // kg/day (positive = loss)
+    const normalized = estDeltaPerDay / TARGET_RATE_PER_DAY;
+    const clamped = Math.max(-MAX_ABS_MULTIPLIER, Math.min(MAX_ABS_MULTIPLIER, normalized));
+    const momentumScaledForDay = clamped / MAX_ABS_MULTIPLIER;
+    history.push({
+      date: dateKey,
+      deficit,
+      tdee,
+      totalIntake: total,
+      momentumScaled: momentumScaledForDay,
+      zoneId: mapNormalizedToZoneId(momentumScaledForDay),
+    });
   }
   if (!count) {
-    return { momentumScaled: 0, avgDeltaPerDay: 0, daysConsidered: 0 };
+    return {
+      momentumScaled: 0,
+      avgDeltaPerDay: 0,
+      daysConsidered: 0,
+      history: [],
+    };
   }
-  // Average deficit in kcal/day (positive = under target, negative = over)
   const avgDeficitPerDay = sumDeficit / count;
-  // Convert that to estimated kg/day, with positive = weight loss
-  // deficit > 0 -> weight loss -> estDeltaKgLoss > 0
   const avgDeltaPerDay = avgDeficitPerDay / 7700;
-  // Calibration constants (can be tweaked)
-  const TARGET_RATE_PER_DAY = 0.1; // ~0.7 kg/week
-  const MAX_ABS_MULTIPLIER = 1.5; // beyond 1.5x target = clamp
-  // Now: positive avgDeltaPerDay = loss, negative = gain
-  const normalized = avgDeltaPerDay / TARGET_RATE_PER_DAY;
-  const clamped = Math.max(-MAX_ABS_MULTIPLIER, Math.min(MAX_ABS_MULTIPLIER, normalized));
-  // Scale to [-1, 1], where +1 is strong loss, -1 is strong gain
-  const momentumScaled = clamped / MAX_ABS_MULTIPLIER;
-  return { momentumScaled, avgDeltaPerDay, daysConsidered: count };
+  const normalizedAvg = avgDeltaPerDay / TARGET_RATE_PER_DAY;
+  const clampedAvg = Math.max(-MAX_ABS_MULTIPLIER, Math.min(MAX_ABS_MULTIPLIER, normalizedAvg));
+  const momentumScaled = clampedAvg / MAX_ABS_MULTIPLIER;
+  return {
+    momentumScaled,
+    avgDeltaPerDay,
+    daysConsidered: count,
+    history, // newest will be last because dates is oldest->newest and we slice from the end
+  };
 }
 
 // End of merged calculations.js
